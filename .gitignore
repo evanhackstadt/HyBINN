@@ -3,3 +3,5 @@ data/
 
 # MISC
 .vscode
+.conda
+__pycache__
