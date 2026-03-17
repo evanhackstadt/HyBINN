@@ -47,7 +47,7 @@ def split_genes(expr_df: pd.DataFrame, pathway_map: dict):
         pathway_map (dict): the Reactome mapping between genes and their pathways from reactome.py build_reactome_map()
     
     Returns:
-        mapped_genes: a list of the Ensembl IDs in our dataset AND Reactome.
+        filtered_mapped_genes: a list of the Ensembl IDs in our dataset AND Reactome.
         unmapped_genes: a list of the Ensembl IDs in our dataset but not in Reactome.
         valid_pathways: a list of ReactomePathwayIDs with 15 <= genes <= 300 mapped to them
     """
@@ -59,8 +59,8 @@ def split_genes(expr_df: pd.DataFrame, pathway_map: dict):
     unmapped_genes = list(set(dataset_genes) - set(pathway_genes))  # set difference
     
     # call filter function and move any filtered-out genes to unmapped_genes
-    filtered_genes, valid_pathways = filter_pathway_map(pathway_map, mapped_genes)
-    removed = list(set(mapped_genes) - set(filtered_genes))
+    filtered_mapped_genes, valid_pathways = filter_pathway_map(pathway_map, mapped_genes)
+    removed = list(set(mapped_genes) - set(filtered_mapped_genes))
     unmapped_genes += removed
     
-    return filtered_genes, unmapped_genes, valid_pathways
+    return filtered_mapped_genes, unmapped_genes, valid_pathways
