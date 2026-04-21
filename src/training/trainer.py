@@ -99,8 +99,7 @@ def evaluate(model, dataloader, loss_fn, device, logger):
     return val_loss, cindex
 
 
-def train(model, train_loader, val_loader, train_proportion, val_proportion, 
-          logfile, epochs=10, alpha=1e-3, weight_decay=1e-4, stop_early_patience=5):
+def train(model, train_loader, val_loader, config):
     """
     Outer training loop that initiates log and runs epochs of train and val, stopping early if needed
     
@@ -108,13 +107,7 @@ def train(model, train_loader, val_loader, train_proportion, val_proportion,
         model (torch.nn.Module): model object
         train_loader (torch DataLoader): dataloader for the training set
         val_loader (torch DataLoader): dataloader for the validation set
-        train_proportion (float): train split proportion for logging purposes
-        val_proportion (float): val split proportion for logging purposes
-        logfile (str): path to the .log file (in experiments/runs/...) to log results to
-        # TODO: read config file
-        **epochs (int): number of epochs for training (default=10)
-        **alpha (float): learning rate for Adam optimizer (default=1e-3)
-        **weight_decay (float): weight_decay for Adam optimizer (default=1e-4)
+        config (dict): config dict containing train, val, epochs, lr, weight_decay, early_stopping_patience, run_dir, run_name
     
     Returns:
         train_losses (list): average training loss of each epoch
@@ -122,17 +115,25 @@ def train(model, train_loader, val_loader, train_proportion, val_proportion,
         cindexes (list): validation C-Index of each epoch
     """
     
+    # Extract config params
+    train_proportion = config['data']['train']
+    val_proportion = config['data']['val']
+    epochs = config['training']['epochs']
+    alpha = config['training']['lr']
+    weight_decay = config['training']['weight_decay']
+    early_stopping_patience = config['training']['early_stopping_patience']
+    log_path = os.path.join(config['logging']['run_dir'], f"{config['logging']['run_name']}.log")
+    
     # Start log
-    log_path = os.path.abspath(logfile)
+    log_path = os.path.abspath(log_path)
     logger = get_logger("trainer", log_path)
     logger.info("=========================================")
     logger.info(f"trainer.py log started {datetime.datetime.now()}")
     logger.info(f"Model: {model.__class__.__name__}")
-    logger.info(f"\tin_nodes: {model.sc1.weight.shape[1]}")
-    logger.info(f"\tpathway_nodes: {model.sc2.weight.shape[1]}")
-    logger.info(f"\thidden_nodes: {model.sc3.weight.shape[1]}")
-    logger.info(f"\tout_nodes: {model.sc4.weight.shape[1]}")
-    # in_nodes, pathway_nodes, hidden_nodes, out_nodes
+    # logger.info(f"\tin_nodes: {model.sc1.weight.shape[1]}")
+    # logger.info(f"\tpathway_nodes: {model.sc2.weight.shape[1]}")
+    # logger.info(f"\thidden_nodes: {model.sc3.weight.shape[1]}")
+    # logger.info(f"\tout_nodes: {model.sc4.weight.shape[1]}")
     logger.info(f"Train: {train_proportion} = {len(train_loader.dataset)} samples")
     logger.info(f"Validation: {val_proportion} = {len(val_loader.dataset)} samples")
     logger.info(f"Batch Size: {train_loader.batch_size}")
@@ -150,7 +151,7 @@ def train(model, train_loader, val_loader, train_proportion, val_proportion,
     best_cindex = 0
     best_epoch = -1
     patience_counter = 0
-    patience = stop_early_patience
+    patience = early_stopping_patience
     
     # Track epoch losses to return for plotting
     train_losses = []
@@ -175,7 +176,7 @@ def train(model, train_loader, val_loader, train_proportion, val_proportion,
             best_cindex = cindex
             best_epoch = epoch+1
             patience_counter = 0
-            torch.save(model.state_dict(), os.path.join(os.path.dirname(logfile), "best_model.pt"))
+            torch.save(model.state_dict(), os.path.join(os.path.dirname(log_path), "best_model.pt"))
         else:
             patience_counter += 1
             if patience_counter >= patience:

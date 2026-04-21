@@ -1,0 +1,31 @@
+# configs/model_config.yaml
+
+# --- Data ---
+data:
+  data_path: "../data/processed/data.csv"   # relative to experiments/train_hybinn.py
+  reactome_path: "../data/reactome/Ensembl2Reactome_All_Levels.txt"
+  train: 0.70
+  val:   0.15
+  test:  0.15
+  batch_size: 128
+  random_seed: 42
+
+# --- Model Architecture ---
+model:
+  pathway_nodes: 400   # number of Reactome pathway nodes (determined at runtime)
+  hidden_nodes: 64
+  out_nodes: 24
+
+# --- Training ---
+training:
+  epochs: 50
+  lr: 1.0e-3
+  weight_decay: 1.0e-4
+  early_stopping_patience: 10
+  dropout: 0.5
+  folds: 5
+
+# --- Logging ---
+logging:
+  run_dir: "runs/binn_baseline/"   # relative to experiments/train_hybinn.py
+  run_name: "run1"
