@@ -1,9 +1,8 @@
 # DATA
 data/
 
-# CERTAIN RESULTS
-runs/binn_baseline/
-runs/temp_testing/
+# RESULTS FOR NOW
+runs/
 
 # MISC
 .vscode
