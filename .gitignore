@@ -1,6 +1,10 @@
 # DATA
 data/
 
+# CERTAIN RESULTS
+runs/binn_baseline/
+runs/temp_testing/
+
 # MISC
 .vscode
 .conda
