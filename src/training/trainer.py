@@ -27,7 +27,8 @@ def train_one_epoch(model, dataloader, optimizer, loss_fn, device, logger):
     train_loss = 0
     
     for batch_num, batch in enumerate(dataloader):   # dataloader __getitem__ returns dict
-        X = batch['X_mapped'].to(device)    # TEMP for standalone BINN, we only use mapped genes
+        X_mapped = batch['X_mapped'].to(device)
+        X_unmapped = batch['X_unmapped'].to(device)
         y_time = batch['y_time'].to(device)
         y_event = batch['y_event'].to(device)
         batch_size = len(y_event)
@@ -36,7 +37,7 @@ def train_one_epoch(model, dataloader, optimizer, loss_fn, device, logger):
         optimizer.zero_grad()
         
         # Compute prediction and loss
-        pred = model(X)
+        pred = model(X_mapped, X_unmapped)
         loss = loss_fn(pred, y_time, y_event)
 
         # Backpropagation
@@ -77,11 +78,12 @@ def evaluate(model, dataloader, loss_fn, device, logger):
     # run validation set (no need for gradients)
     with torch.no_grad():
         for batch in dataloader:
-            X = batch['X_mapped'].to(device)    # TEMP for standalone BINN, we only use mapped genes
+            X_mapped = batch['X_mapped'].to(device)
+            X_unmapped = batch['X_unmapped'].to(device)
             y_time = batch['y_time'].to(device)
             y_event = batch['y_event'].to(device)
             
-            pred = model(X)
+            pred = model(X_mapped, X_unmapped)
             val_loss += loss_fn(pred, y_time, y_event).item()
             
             all_preds.append(pred.cpu().numpy())
@@ -99,15 +101,17 @@ def evaluate(model, dataloader, loss_fn, device, logger):
     return val_loss, cindex
 
 
-def train(model, train_loader, val_loader, config):
+def train(model, train_loader, val_loader, log_path, config, early_stopping=True):
     """
-    Outer training loop that initiates log and runs epochs of train and val, stopping early if needed
+    Outer training loop that runs and logs epochs of train and val, stopping early if needed, for one fold
     
     Args:
         model (torch.nn.Module): model object
         train_loader (torch DataLoader): dataloader for the training set
         val_loader (torch DataLoader): dataloader for the validation set
+        logger (logger): logger object used to write results
         config (dict): config dict containing train, val, epochs, lr, weight_decay, early_stopping_patience, run_dir, run_name
+        early_stopping (bool): flag to run early stopping logic if cindex not improving. should be set False for final retrain on trainval
     
     Returns:
         train_losses (list): average training loss of each epoch
@@ -116,30 +120,11 @@ def train(model, train_loader, val_loader, config):
     """
     
     # Extract config params
-    train_proportion = config['data']['train']
-    val_proportion = config['data']['val']
     epochs = config['training']['epochs']
     alpha = config['training']['lr']
     weight_decay = config['training']['weight_decay']
     early_stopping_patience = config['training']['early_stopping_patience']
-    log_path = os.path.join(config['logging']['run_dir'], f"{config['logging']['run_name']}.log")
-    
-    # Start log
-    log_path = os.path.abspath(log_path)
-    logger = get_logger("trainer", log_path)
-    logger.info("=========================================")
-    logger.info(f"trainer.py log started {datetime.datetime.now()}")
-    logger.info(f"Model: {model.__class__.__name__}")
-    # logger.info(f"\tin_nodes: {model.sc1.weight.shape[1]}")
-    # logger.info(f"\tpathway_nodes: {model.sc2.weight.shape[1]}")
-    # logger.info(f"\thidden_nodes: {model.sc3.weight.shape[1]}")
-    # logger.info(f"\tout_nodes: {model.sc4.weight.shape[1]}")
-    logger.info(f"Train: {train_proportion} = {len(train_loader.dataset)} samples")
-    logger.info(f"Validation: {val_proportion} = {len(val_loader.dataset)} samples")
-    logger.info(f"Batch Size: {train_loader.batch_size}")
-    logger.info(f"Epochs: {epochs}")
-    logger.info(f"Alpha: {alpha}")
-    logger.info(f"Weight_Decay: {weight_decay}")
+    logger = get_logger(__name__, log_path)
     
     # Prepare to train
     optimizer = optim.Adam(model.parameters(), 
@@ -172,16 +157,21 @@ def train(model, train_loader, val_loader, config):
         cindexes.append(cindex)
         
         # check if we should stop early
-        if cindex > best_cindex:
-            best_cindex = cindex
-            best_epoch = epoch+1
-            patience_counter = 0
-            torch.save(model.state_dict(), os.path.join(os.path.dirname(log_path), "best_model.pt"))
+        if early_stopping:
+            if cindex > best_cindex:
+                best_cindex = cindex
+                best_epoch = epoch + 1
+                patience_counter = 0
+                torch.save(model.state_dict(), os.path.join(os.path.dirname(log_path), "best_model.pt"))
+            else:
+                patience_counter += 1
+                if patience_counter >= patience:
+                    logger.info(f"Stopping early at Epoch {epoch+1} since no C-Index improvement after {patience} epochs.")
+                    break
         else:
-            patience_counter += 1
-            if patience_counter >= patience:
-                logger.info(f"Stopping early at Epoch {epoch+1} since no C-Index improvement after {patience} epochs.")
-                break
+            if cindex > best_cindex:
+                best_cindex = cindex
+                best_epoch = epoch + 1
             
     logger.info("Done!")
     logger.info(f"Best C-Index = {best_cindex} at Epoch {best_epoch}")
@@ -189,7 +179,7 @@ def train(model, train_loader, val_loader, config):
     return train_losses, val_losses, cindexes
 
 
-def test(model, test_loader, best_model_file, logfile):
+def test(model, test_loader, best_model_file, log_path):
     """
     Separate testing loop to be run after training, getting a final unbiased evaluation of the model
     
@@ -197,7 +187,7 @@ def test(model, test_loader, best_model_file, logfile):
         model (torch.nn.Module): model object
         test_loader (torch DataLoader): dataloader for the testing set
         best_model_file (str): path to the best_model.pt file to load and test
-        logfile (str): path to the .log file (in experiments/runs/...) to log results to
+        logger (logger): logger object used to write results
     
     Returns:
         test_losses (list): average testing loss
@@ -206,8 +196,7 @@ def test(model, test_loader, best_model_file, logfile):
     
     loss_fn = cox_loss
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    log_path = os.path.abspath(logfile)
-    logger = get_logger("tester", log_path)
+    logger = get_logger(__name__, log_path)
     
     # Load and test model
     model.load_state_dict(torch.load(best_model_file))
