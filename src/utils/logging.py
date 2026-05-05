@@ -3,9 +3,20 @@ import logging
 def get_logger(name, log_file=None):
     logger = logging.getLogger(name)
     logger.setLevel(logging.INFO)
-    formatter = logging.Formatter('%(asctime)s | %(levelname)s | %(message)s')
+    logger.propagate = False
+
+    if logger.handlers:
+        logger.handlers.clear()
+
+    formatter = logging.Formatter('%(message)s')
+
+    stream_handler = logging.StreamHandler()
+    stream_handler.setFormatter(formatter)
+    logger.addHandler(stream_handler)
     
-    logger.addHandler(logging.StreamHandler())  # console
     if log_file:
-        logger.addHandler(logging.FileHandler(log_file))
+        file_handler = logging.FileHandler(log_file)
+        file_handler.setFormatter(formatter)
+        logger.addHandler(file_handler)
+    
     return logger
