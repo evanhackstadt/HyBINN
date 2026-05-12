@@ -18,16 +18,15 @@ class HyBINN(nn.Module):
                  binn_in_nodes, binn_pathway_nodes, binn_hidden_nodes, pathway_mask,
                  gene_in_nodes, gene_hidden_nodes_1, gene_hidden_nodes_2,
                  clinical_in_nodes, clinical_hidden_nodes_1, clinical_hidden_nodes_2,
-                 embedding_nodes,
-                 out_nodes):
+                 embedding_nodes):
         super(HyBINN, self).__init__()
         
         self.binn_branch = BINNBranch(binn_in_nodes, binn_pathway_nodes,
-                                      binn_hidden_nodes, out_nodes, pathway_mask)
+                                      binn_hidden_nodes, embedding_nodes, pathway_mask)
         self.gene_branch = GeneBranch(gene_in_nodes, gene_hidden_nodes_1,
-                                      gene_hidden_nodes_2, out_nodes)
+                                      gene_hidden_nodes_2, embedding_nodes)
         self.clinical_branch = ClinicalBranch(clinical_in_nodes, clinical_hidden_nodes_1, 
-                                              clinical_hidden_nodes_2, out_nodes)
+                                              clinical_hidden_nodes_2, embedding_nodes)
         self.attention_fusion = AttentionFusion(embedding_nodes)
         self.survival_head = SurvivalHead(embedding_nodes)
     

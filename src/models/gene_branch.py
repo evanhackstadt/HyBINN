@@ -9,7 +9,7 @@ import torch.nn as nn
 '''
 class GeneBranch(nn.Module):
     
-    def __init__(self, in_nodes, hidden_nodes_1, hidden_nodes_2, out_nodes):
+    def __init__(self, in_nodes, hidden_nodes_1, hidden_nodes_2, embedding_nodes):
         super(GeneBranch, self).__init__()
         
         self.relu = nn.ReLU()
@@ -22,7 +22,7 @@ class GeneBranch(nn.Module):
         self.fc2 = nn.Linear(hidden_nodes_1, hidden_nodes_2)
         self.bn2 = nn.BatchNorm1d(hidden_nodes_2)
         # hidden layer 2 --> output layer (embedding)
-        self.fc3 = nn.Linear(hidden_nodes_2, out_nodes, bias=False)
+        self.fc3 = nn.Linear(hidden_nodes_2, embedding_nodes, bias=False)
     
     
     def forward(self, x_mapped, x_unmapped):

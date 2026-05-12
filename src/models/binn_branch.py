@@ -11,7 +11,7 @@ mapped_genes → [sparse Linear → Tanh] → pathways
 '''
 class BINNBranch(nn.Module):
     
-    def __init__(self, in_nodes, pathway_nodes, hidden_nodes, out_nodes, pathway_mask):
+    def __init__(self, in_nodes, pathway_nodes, hidden_nodes, embedding_nodes, pathway_mask):
         super(BINNBranch, self).__init__()
         
         self.tanh = nn.Tanh()
@@ -23,7 +23,7 @@ class BINNBranch(nn.Module):
         # pathway layer --> hidden layer (superpathways)
         self.fc2 = nn.Linear(pathway_nodes, hidden_nodes)
         # hidden layer --> hidden layer 2 (embedding)
-        self.fc3 = nn.Linear(hidden_nodes, out_nodes, bias=False)
+        self.fc3 = nn.Linear(hidden_nodes, embedding_nodes, bias=False)
     
     
     def forward(self, x_mapped, x_unmapped):
@@ -38,9 +38,9 @@ class BINNBranch(nn.Module):
         self.pathway_activations = x  # store it for interpretability
         
         # the following layers are normal
-        # x = self.dropout(x)           # TODO: test with/without
+        x = self.dropout(x)           # TODO: test with/without
         x = self.tanh(self.fc2(x))
-        # x = self.dropout(x)
+        x = self.dropout(x)
         x = self.tanh(self.fc3(x))
         
         return x

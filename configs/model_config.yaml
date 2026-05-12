@@ -2,30 +2,36 @@
 
 # --- Data ---
 data:
-  data_path: "../data/processed/data.csv"   # relative to experiments/train_hybinn.py
-  reactome_path: "../data/reactome/Ensembl2Reactome_All_Levels.txt"
+  data_path: "/Users/evan/Documents/GitHub/HyBINN/data/processed/data.csv"
+  reactome_path: "/Users/evan/Documents/GitHub/HyBINN/data/reactome/Ensembl2Reactome_All_Levels.txt"
   train: 0.70
   val:   0.15
   test:  0.15
-  batch_size: 128
+  batch_size: 64
   random_seed: 42
 
 # --- Model Architecture ---
 model:
-  pathway_nodes: 400   # number of Reactome pathway nodes (determined at runtime)
-  hidden_nodes: 64
-  out_nodes: 24
+  embedding_dim: 64       # shared across all branches and fusion
+  binn:
+    pathway_nodes: 400    # actual number determined at runtime based on Reactome
+    hidden_nodes: 128
+  gene:
+    hidden_nodes_1: 1024
+    hidden_nodes_2: 256
+  clinical:
+    hidden_nodes_1: 64    # placeholder
+    hidden_nodes_2: 32
 
 # --- Training ---
 training:
   epochs: 50
   lr: 1.0e-3
   weight_decay: 1.0e-4
-  early_stopping_patience: 10
-  dropout: 0.5
+  early_stopping_patience: 5
   folds: 5
 
 # --- Logging ---
 logging:
-  run_dir: "runs/binn_baseline/"   # relative to experiments/train_hybinn.py
-  run_name: "run1"
+  run_dir: "/Users/evan/Documents/GitHub/HyBINN/experiments/runs/binn_baseline/binn_dropout/"
+  run_name: "binn_dropout"
