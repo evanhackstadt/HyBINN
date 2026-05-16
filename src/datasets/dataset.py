@@ -1,19 +1,15 @@
 import torch
 from torch.utils.data import Subset, Dataset, DataLoader
-from sklearn.model_selection import train_test_split
-import pandas as pd
-import numpy as np
-
-from utils.splitting import stratified_train_test_split, get_stratified_kfold_indices
 
 
 class SurvivalDataset(Dataset):
     
-    def __init__(self, x_mapped, x_unmapped, times, events):
+    def __init__(self, x_mapped, x_unmapped, x_clinical, times, events):
         """
         Args:
             x_mapped:   numpy array (n_patients, n_mapped_genes)
             x_unmapped: numpy array (n_patients, n_unmapped_genes)
+            x_clinical: numpy array (n_patients, 3)
             times:      numpy array (n_patients,)
             events:     numpy array (n_patients,)
         """
@@ -21,6 +17,7 @@ class SurvivalDataset(Dataset):
         # convert numpy --> tensors
         self.x_mapped   = torch.tensor(x_mapped, dtype=torch.float32)
         self.x_unmapped = torch.tensor(x_unmapped, dtype=torch.float32)
+        self.x_clinical = torch.tensor(x_clinical, dtype=torch.float32)
         self.y_time     = torch.tensor(times, dtype=torch.float32)
         self.y_event    = torch.tensor(events, dtype=torch.float32)
         
@@ -35,6 +32,7 @@ class SurvivalDataset(Dataset):
         item = {
             'X_mapped': self.x_mapped[idx],
             'X_unmapped': self.x_unmapped[idx],
+            'X_clinical': self.x_clinical[idx],
             'y_time': self.y_time[idx],
             'y_event': self.y_event[idx]
         }

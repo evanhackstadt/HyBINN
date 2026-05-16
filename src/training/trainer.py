@@ -29,6 +29,7 @@ def train_one_epoch(model, dataloader, optimizer, loss_fn, device, logger):
     for batch_num, batch in enumerate(dataloader):   # dataloader __getitem__ returns dict
         X_mapped = batch['X_mapped'].to(device)
         X_unmapped = batch['X_unmapped'].to(device)
+        X_clinical = batch['X_clinical'].to(device)
         y_time = batch['y_time'].to(device)
         y_event = batch['y_event'].to(device)
         batch_size = len(y_event)
@@ -37,7 +38,7 @@ def train_one_epoch(model, dataloader, optimizer, loss_fn, device, logger):
         optimizer.zero_grad()
         
         # Compute prediction and loss
-        pred = model(X_mapped, X_unmapped)
+        pred = model(X_mapped, X_unmapped, X_clinical)
         loss = loss_fn(pred, y_time, y_event)
 
         # Backpropagation
@@ -80,10 +81,11 @@ def evaluate(model, dataloader, loss_fn, device, logger):
         for batch in dataloader:
             X_mapped = batch['X_mapped'].to(device)
             X_unmapped = batch['X_unmapped'].to(device)
+            X_clinical = batch['X_clinical'].to(device)
             y_time = batch['y_time'].to(device)
             y_event = batch['y_event'].to(device)
             
-            pred = model(X_mapped, X_unmapped)
+            pred = model(X_mapped, X_unmapped, X_clinical)
             val_loss += loss_fn(pred, y_time, y_event).item()
             
             all_preds.append(pred.cpu().numpy())
@@ -114,8 +116,8 @@ def train(model, train_loader, val_loader, log_path, config, early_stopping=True
         early_stopping (bool): flag to run early stopping logic if cindex not improving. should be set False for final retrain on trainval
     
     Returns:
-        train_losses (list): average training loss of each epoch
-        val_losses (list): average validation loss of each epoch
+        train_losses (list): average training loss of each epoch, 
+        val_losses (list): average validation loss of each epoch, 
         cindexes (list): validation C-Index of each epoch
     """
     

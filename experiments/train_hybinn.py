@@ -28,7 +28,7 @@ from utils.logging import get_logger
 
 # ---- Helper Functions ----
 
-def instantiate_model(args, cfg, mapped, unmapped, mask, pathway_labels, embed_dim):
+def instantiate_model(args, cfg, mapped, unmapped, clinical, mask, pathway_labels, embed_dim):
     """Instantiates and returns model object (hybrid or standalone branch) based on CLI args"""
     
     head = SurvivalHead(embed_dim)
@@ -41,11 +41,10 @@ def instantiate_model(args, cfg, mapped, unmapped, mask, pathway_labels, embed_d
                        gene_in_nodes=len(unmapped),
                        gene_hidden_nodes_1=cfg['model']['gene']['hidden_nodes_1'],
                        gene_hidden_nodes_2=cfg['model']['gene']['hidden_nodes_2'],
-                       clinical_in_nodes=10,    # TODO PLACEHOLDER
+                       clinical_in_nodes=len(clinical),
                        clinical_hidden_nodes_1=cfg['model']['clinical']['hidden_nodes_1'],
                        clinical_hidden_nodes_2=cfg['model']['clinical']['hidden_nodes_2'],
-                       embedding_nodes=embed_dim,
-                       out_nodes=1)
+                       embedding_nodes=embed_dim)
         
     elif args.model == 'binn':
         branch = BINNBranch(in_nodes=len(mapped),
@@ -63,7 +62,7 @@ def instantiate_model(args, cfg, mapped, unmapped, mask, pathway_labels, embed_d
         model = StandaloneBranch(branch, head)
     
     elif args.model == 'clinical':
-        branch = ClinicalBranch(in_nodes=10,    # TODO PLACEHOLDER
+        branch = ClinicalBranch(in_nodes=len(clinical),
                                 hidden_nodes_1=cfg['model']['clinical']['hidden_nodes_1'],
                                 hidden_nodes_2=cfg['model']['clinical']['hidden_nodes_2'],
                                 embedding_nodes=embed_dim)
@@ -114,8 +113,14 @@ def main():
 
 
     # Load dataset
-    data_path = cfg['data']['data_path']
-    df = pd.read_csv(data_path, index_col=0)
+    gene_data_path = cfg['data']['gene_data_path']
+    clinical_data_path = cfg['data']['clinical_data_path']
+    df = pd.read_csv(gene_data_path, index_col=0)
+    clinical_df = pd.read_csv(clinical_data_path, index_col=0)
+    clinical = clinical_df.columns.to_list()
+    
+    assert df.index.to_list() == clinical_df.index.to_list(), \
+        f"Gene-Clinical index mismatch. Check preprocessing or re-run inner join."
 
     times = df['OS.time'].to_numpy(dtype=np.float32)
     events = df['OS'].to_numpy(dtype=np.float32)
@@ -129,21 +134,23 @@ def main():
 
     x_mapped = gene_df[gene_labels].to_numpy(dtype=np.float32)
     x_unmapped = gene_df[unmapped].to_numpy(dtype=np.float32)
+    x_clinical = clinical_df.to_numpy(dtype=np.float32)
 
     # Dimensions check
     assert x_mapped.shape[1] == mask.shape[0], \
         f"Mapped gene mismatch: {x_mapped.shape[1]} vs {mask.shape[0]}"
         
     # Instantiate and split Dataset
-    dataset = SurvivalDataset(x_mapped, x_unmapped, times, events)
+    dataset = SurvivalDataset(x_mapped, x_unmapped, x_clinical, times, events)
 
     trainval_idx, test_idx = stratified_train_test_split(events, cfg)
     test_dataloader = get_dataloader(dataset, test_idx, cfg, shuffle=False)
 
     trainval_dataset = SurvivalDataset(x_mapped[trainval_idx, :],
-                                    x_unmapped[trainval_idx, :],
-                                    times[trainval_idx],
-                                    events[trainval_idx])
+                                       x_unmapped[trainval_idx, :],
+                                       x_clinical[trainval_idx, :],
+                                       times[trainval_idx],
+                                       events[trainval_idx])
 
 
     # Logging path setup
@@ -181,7 +188,7 @@ def main():
         val_dataloader = get_dataloader(trainval_dataset, val_idx, cfg, shuffle=False)
         
         # instantiate fresh model
-        model = instantiate_model(args, cfg, mapped, unmapped, mask, pathway_labels, embed_dim)
+        model = instantiate_model(args, cfg, mapped, unmapped, clinical, mask, pathway_labels, embed_dim)
         
         # Start log
         logger.info("\n=========================================")
@@ -224,7 +231,7 @@ def main():
     trainval_dataloader = get_dataloader(trainval_dataset, np.arange(len(trainval_dataset)),  # all indices
                                     cfg, shuffle=True)
 
-    final_model = instantiate_model(args, cfg, mapped, unmapped, mask, pathway_labels, embed_dim)
+    final_model = instantiate_model(args, cfg, mapped, unmapped, clinical, mask, pathway_labels, embed_dim)
 
     # Temporarily override epoch count
     retrain_cfg = cfg.copy()

@@ -33,9 +33,9 @@ class HyBINN(nn.Module):
     
     def forward(self, x_mapped, x_unmapped, x_clinical):
         # propogate along branches
-        h_binn     = self.binn_branch(x_mapped, x_unmapped)
-        h_gene     = self.gene_branch(x_mapped, x_unmapped)
-        h_clinical = self.clinical_branch(x_clinical)
+        h_binn     = self.binn_branch(x_mapped, x_unmapped, x_clinical)
+        h_gene     = self.gene_branch(x_mapped, x_unmapped, x_clinical)
+        h_clinical = self.clinical_branch(x_mapped, x_unmapped, x_clinical)
         
         # fusion
         z   = self.attention_fusion(h_binn, h_gene, h_clinical)

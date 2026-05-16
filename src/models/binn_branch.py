@@ -26,7 +26,7 @@ class BINNBranch(nn.Module):
         self.fc3 = nn.Linear(hidden_nodes, embedding_nodes, bias=False)
     
     
-    def forward(self, x_mapped, x_unmapped):
+    def forward(self, x_mapped, x_unmapped, x_clinical):
         # BINN branch is for mapped genes
         x = x_mapped
         

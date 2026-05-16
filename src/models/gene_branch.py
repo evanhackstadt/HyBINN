@@ -5,7 +5,7 @@ import torch.nn as nn
 '''
 7823 → [Linear → BN → ReLU → Dropout(0.5)] → 1024
      → [Linear → BN → ReLU → Dropout(0.5)] → 256
-     → [Linear] → 64 (embedding, no activation)
+     → [Linear, no activation] → 64 (embedding)
 '''
 class GeneBranch(nn.Module):
     
@@ -25,7 +25,7 @@ class GeneBranch(nn.Module):
         self.fc3 = nn.Linear(hidden_nodes_2, embedding_nodes, bias=False)
     
     
-    def forward(self, x_mapped, x_unmapped):
+    def forward(self, x_mapped, x_unmapped, x_clinical):
         # Gene branch is for unmapped genes
         x = x_unmapped
         

@@ -2,7 +2,8 @@
 
 # --- Data ---
 data:
-  data_path: "/Users/evan/Documents/GitHub/HyBINN/data/processed/data.csv"
+  gene_data_path: "/Users/evan/Documents/GitHub/HyBINN/data/processed/gene_data.csv"
+  clinical_data_path: "/Users/evan/Documents/GitHub/HyBINN/data/processed/clinical_data.csv"
   reactome_path: "/Users/evan/Documents/GitHub/HyBINN/data/reactome/Ensembl2Reactome_All_Levels.txt"
   train: 0.70
   val:   0.15
@@ -20,7 +21,7 @@ model:
     hidden_nodes_1: 1024
     hidden_nodes_2: 256
   clinical:
-    hidden_nodes_1: 64    # placeholder
+    hidden_nodes_1: 16
     hidden_nodes_2: 32
 
 # --- Training ---

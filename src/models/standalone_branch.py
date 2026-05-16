@@ -9,6 +9,6 @@ class StandaloneBranch(nn.Module):
         self.branch = branch
         self.head = head
 
-    def forward(self, x_mapped, x_unmapped):
-        emb = self.branch(x_mapped, x_unmapped)
+    def forward(self, x_mapped, x_unmapped, x_clinical):
+        emb = self.branch(x_mapped, x_unmapped, x_clinical)
         return self.head(emb)

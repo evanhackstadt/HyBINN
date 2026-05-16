@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 
 # AttentionFusion - takes embeddings from all 3 branches --> attention mechanism --> fused embedding
