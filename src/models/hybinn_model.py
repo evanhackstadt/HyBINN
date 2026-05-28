@@ -14,31 +14,26 @@ genes, clinical data → binn, gene, clinical branches
 '''
 class HyBINN(nn.Module):
     
-    def __init__(self,
-                 binn_in_nodes, binn_pathway_nodes, binn_hidden_nodes, pathway_mask,
-                 gene_in_nodes, gene_hidden_nodes_1, gene_hidden_nodes_2,
-                 clinical_in_nodes, clinical_hidden_nodes_1, clinical_hidden_nodes_2,
-                 embedding_nodes):
+    def __init__(self, branches: dict, embedding_nodes):
         super(HyBINN, self).__init__()
         
-        self.binn_branch = BINNBranch(binn_in_nodes, binn_pathway_nodes,
-                                      binn_hidden_nodes, embedding_nodes, pathway_mask)
-        self.gene_branch = GeneBranch(gene_in_nodes, gene_hidden_nodes_1,
-                                      gene_hidden_nodes_2, embedding_nodes)
-        self.clinical_branch = ClinicalBranch(clinical_in_nodes, clinical_hidden_nodes_1, 
-                                              clinical_hidden_nodes_2, embedding_nodes)
-        self.attention_fusion = AttentionFusion(embedding_nodes)
-        self.survival_head = SurvivalHead(embedding_nodes)
+        # branches = {'binn': BINNBranch(...), 'clinical': ClinicalBranch(...)}
+        self.branches = nn.ModuleDict(branches)
+        
+        self.attention_fusion = AttentionFusion(embed_dim=embedding_nodes,
+                                                n_branches=len(branches.keys()))
+        self.survival_head = SurvivalHead(in_nodes=embedding_nodes)
     
     
     def forward(self, x_mapped, x_unmapped, x_clinical):
-        # propogate along branches
-        h_binn     = self.binn_branch(x_mapped, x_unmapped, x_clinical)
-        h_gene     = self.gene_branch(x_mapped, x_unmapped, x_clinical)
-        h_clinical = self.clinical_branch(x_mapped, x_unmapped, x_clinical)
+        
+        # propogate along whichever branches were used
+        branches_out = []
+        for branch in self.branches.values():
+            branches_out.append(branch(x_mapped, x_unmapped, x_clinical))
         
         # fusion
-        z   = self.attention_fusion(h_binn, h_gene, h_clinical)
+        z   = self.attention_fusion(branches_out)
         out = self.survival_head(z)
         
         return out

@@ -13,6 +13,7 @@ data:
 
 # --- Model Architecture ---
 model:
+  branches: [binn, gene, clinical]  # can be overwritten by CLI args
   embedding_dim: 64       # shared across all branches and fusion
   binn:
     pathway_nodes: 400    # actual number determined at runtime based on Reactome
@@ -34,5 +35,5 @@ training:
 
 # --- Logging ---
 logging:
-  run_dir: "/Users/evan/Documents/GitHub/HyBINN/experiments/runs/binn_baseline/binn_dropout/"
-  run_name: "binn_dropout"
+  run_dir: "/Users/evan/Documents/GitHub/HyBINN/experiments/runs/new_run/"
+  run_name: "default"

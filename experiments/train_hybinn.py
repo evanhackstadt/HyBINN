@@ -8,7 +8,7 @@ import numpy as np
 import torch
 from sklearn.model_selection import StratifiedKFold
 
-from utils.config import load_config
+from utils.config import load_config, write_config
 from processing.reactome import build_reactome_map, build_mask_matrix
 from processing.split_genes import split_genes
 from datasets.dataset import SurvivalDataset, get_dataloader
@@ -28,45 +28,33 @@ from utils.logging import get_logger
 
 # ---- Helper Functions ----
 
-def instantiate_model(args, cfg, mapped, unmapped, clinical, mask, pathway_labels, embed_dim):
-    """Instantiates and returns model object (hybrid or standalone branch) based on CLI args"""
+def instantiate_model(cfg, mapped, unmapped, clinical, mask, pathway_labels, embed_dim):
+    """Instantiates and returns model object based on the active branches"""
     
-    head = SurvivalHead(embed_dim)
+    active_branches = set(cfg['model']['branches'])
     
-    if args.model == 'hybrid':
-        model = HyBINN(binn_in_nodes=len(mapped),
-                       binn_pathway_nodes=len(pathway_labels),
-                       binn_hidden_nodes=cfg['model']['binn']['hidden_nodes'],
-                       pathway_mask=mask,
-                       gene_in_nodes=len(unmapped),
-                       gene_hidden_nodes_1=cfg['model']['gene']['hidden_nodes_1'],
-                       gene_hidden_nodes_2=cfg['model']['gene']['hidden_nodes_2'],
-                       clinical_in_nodes=len(clinical),
-                       clinical_hidden_nodes_1=cfg['model']['clinical']['hidden_nodes_1'],
-                       clinical_hidden_nodes_2=cfg['model']['clinical']['hidden_nodes_2'],
-                       embedding_nodes=embed_dim)
-        
-    elif args.model == 'binn':
-        branch = BINNBranch(in_nodes=len(mapped),
-                            pathway_nodes=len(pathway_labels),
-                            hidden_nodes=cfg['model']['binn']['hidden_nodes'],
-                            embedding_nodes=embed_dim,
-                            pathway_mask=mask)
-        model = StandaloneBranch(branch, head)
+    branch_map = {}
+    if 'binn' in active_branches:
+        branch_map['binn'] = BINNBranch(in_nodes=len(mapped),
+                                        pathway_nodes=len(pathway_labels),
+                                        hidden_nodes=cfg['model']['binn']['hidden_nodes'],
+                                        embedding_nodes=embed_dim,
+                                        pathway_mask=mask)
     
-    elif args.model == 'gene':
-        branch = GeneBranch(in_nodes=len(unmapped),
-                            hidden_nodes_1=cfg['model']['gene']['hidden_nodes_1'],
-                            hidden_nodes_2=cfg['model']['gene']['hidden_nodes_2'],
-                            embedding_nodes=embed_dim)
-        model = StandaloneBranch(branch, head)
+    if 'gene' in active_branches:
+        branch_map['gene'] = GeneBranch(in_nodes=len(unmapped),
+                                        hidden_nodes_1=cfg['model']['gene']['hidden_nodes_1'],
+                                        hidden_nodes_2=cfg['model']['gene']['hidden_nodes_2'],
+                                        embedding_nodes=embed_dim)
     
-    elif args.model == 'clinical':
-        branch = ClinicalBranch(in_nodes=len(clinical),
-                                hidden_nodes_1=cfg['model']['clinical']['hidden_nodes_1'],
-                                hidden_nodes_2=cfg['model']['clinical']['hidden_nodes_2'],
-                                embedding_nodes=embed_dim)
-        model = StandaloneBranch(branch, head)
+    if 'clinical' in active_branches:
+        branch_map['clinical'] = ClinicalBranch(in_nodes=len(clinical),
+                                                hidden_nodes_1=cfg['model']['clinical']['hidden_nodes_1'],
+                                                hidden_nodes_2=cfg['model']['clinical']['hidden_nodes_2'],
+                                                embedding_nodes=embed_dim)
+
+    model = HyBINN(branch_map, 
+                   embedding_nodes=cfg['model']['embedding_dim'])
     
     return model
 
@@ -79,10 +67,10 @@ def main():
     # CLI Arg Handling
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--model',    choices=['hybrid', 'binn', 'gene', 'clinical'], required=True)
-    parser.add_argument('--config',   type=str, default='../configs/model_config.yaml')
-    parser.add_argument('--run_dir',  type=str, default=None)
-    parser.add_argument('--run_name', type=str, default=None)
+    parser.add_argument('--branches', nargs='+', default=[])
+    parser.add_argument('--config',   type=str,  default='../configs/model_config.yaml')
+    parser.add_argument('--run_dir',  type=str,  default=None)
+    parser.add_argument('--run_name', type=str,  default=None)
 
     # allow CLI overrides of config values:
     parser.add_argument('--epochs',   type=int,   default=None)
@@ -98,6 +86,8 @@ def main():
     cfg = load_config("../configs/model_config.yaml", script_dir)
 
     # CLI overrides
+    if len(args.branches) > 0:
+        cfg['model']['branches'] = args.branches
     if args.run_dir is not None:
         cfg['logging']['run_dir'] = os.path.abspath(args.run_dir)
     if args.run_name is not None:
@@ -124,6 +114,7 @@ def main():
 
     times = df['OS.time'].to_numpy(dtype=np.float32)
     events = df['OS'].to_numpy(dtype=np.float32)
+    ids = df.index.values
     gene_df = df.drop(columns=['OS.time', 'OS'])
 
     # Map pathways and split genes
@@ -151,7 +142,10 @@ def main():
                                        x_clinical[trainval_idx, :],
                                        times[trainval_idx],
                                        events[trainval_idx])
-
+    
+    # Store indeces for reproducibility
+    ids_df = pd.DataFrame(columns=['Partition', 'Fold', 'IDs'])
+    ids_df.loc[len(ids_df)] = ['Testing', 'N/A', ids[test_idx]]
 
     # Logging path setup
     dir_path = cfg['logging']['run_dir']
@@ -161,40 +155,45 @@ def main():
         os.makedirs(dir_path)
 
     log_path = os.path.join(dir_path, f"{run_name}.log")
-    best_model_path = os.path.join(dir_path, f"best_model_{run_name}.pt")
+    best_model_path = os.path.join(dir_path, f"best_model.pt")
 
     if os.path.exists(log_path):
         os.remove(log_path)
 
+    # Start log
     logger = get_logger(__name__, log_path)
     logger.info(f"train_hybinn.py log started {datetime.datetime.now()}")
+    logger.info("=========================================")
+    logger.info(f"Model Active Branches: {cfg['model']['branches']}")
     logger.info("=========================================")
 
 
     # TRAINING LOOP
 
     embed_dim = cfg['model']['embedding_dim']
-    head = SurvivalHead(embed_dim)
 
     fold_cindices = []
     fold_best_epochs = []
-    results = pd.DataFrame(columns=['fold', 'epoch', 'train_loss',
-                                    'val_loss', 'cindexes'])
+    results_by_epoch = pd.DataFrame(columns=['fold', 'epoch', 'train_loss', 
+                                          'val_loss', 'cindex'])
 
     for fold, (train_idx, val_idx) in enumerate(get_stratified_kfold_indices(trainval_dataset.y_event.numpy(), cfg)):
+        
+        # log IDs
+        ids_df.loc[len(ids_df)] = ['Training', fold, ids[train_idx]]
+        ids_df.loc[len(ids_df)] = ['Validation', fold, ids[val_idx]]
         
         # get dataloaders
         train_dataloader = get_dataloader(trainval_dataset, train_idx, cfg, shuffle=True)
         val_dataloader = get_dataloader(trainval_dataset, val_idx, cfg, shuffle=False)
         
         # instantiate fresh model
-        model = instantiate_model(args, cfg, mapped, unmapped, clinical, mask, pathway_labels, embed_dim)
+        model = instantiate_model(cfg, mapped, unmapped, clinical, mask, pathway_labels, embed_dim)
         
         # Start log
         logger.info("\n=========================================")
         logger.info(f"FOLD {fold+1}/{cfg['training']['folds']}")
         logger.info("=========================================\n")
-        logger.info(f"Model: {model.__class__.__name__}")
         
         
         # train and log results
@@ -209,13 +208,24 @@ def main():
             'epoch': range(1, len(cindexes)+1),
             'train_loss': train_loss,
             'val_loss': val_loss,
-            'cindexes': cindexes
+            'cindex': cindexes
         })
-        results = pd.concat([results, fold_results], ignore_index=True)
+        results_by_epoch = pd.concat([results_by_epoch, fold_results], ignore_index=True)
         
-    results.to_csv(os.path.join(dir_path, f"train_results_{run_name}.csv"))
+    results_by_epoch.to_csv(os.path.join(dir_path, f"train_results_by_epoch.csv"))
 
-    # Summarize training results
+    # Summarize training results by fold
+    results_by_fold = results_by_epoch.groupby(['fold'], as_index=False).agg(
+        mean_cindex=('cindex', 'mean'),
+        stdev_cindex=('cindex', 'std'),
+        mean_train_loss=('train_loss', 'mean'),
+        stdev_train_loss=('train_loss', 'std'),
+        mean_val_loss=('val_loss', 'mean'),
+        stdev_val_loss=('val_loss', 'std')
+    )
+    results_by_fold.to_csv(os.path.join(dir_path, f"train_results_by_fold.csv"), index=False)
+    
+    # Summarize training results across folds
     cv_mean_cindex = np.mean(fold_cindices)    # mean best cindex across folds
     cv_stdev_cindex = np.std(fold_cindices)
     mean_best_epoch = int(np.round(np.mean(fold_best_epochs)))
@@ -231,7 +241,7 @@ def main():
     trainval_dataloader = get_dataloader(trainval_dataset, np.arange(len(trainval_dataset)),  # all indices
                                     cfg, shuffle=True)
 
-    final_model = instantiate_model(args, cfg, mapped, unmapped, clinical, mask, pathway_labels, embed_dim)
+    final_model = instantiate_model(cfg, mapped, unmapped, clinical, mask, pathway_labels, embed_dim)
 
     # Temporarily override epoch count
     retrain_cfg = cfg.copy()
@@ -251,49 +261,104 @@ def main():
 
 
     # TESTING
+    
     avg_test_loss, test_cindex = test(final_model, test_dataloader, best_model_path, log_path)
 
-    # Summarize final results
+    # Summarize final train/test results
     summary_results = pd.DataFrame({
         'instance': ['CV Training', 'Retraining', 'Test'],
         'mean_cindex': [cv_mean_cindex, retrain_mean_cindex, test_cindex],
         'stdev_cindex': [cv_stdev_cindex, retrain_stdev_cindex, 0]
     })
-    summary_results.to_csv(os.path.join(dir_path, f"summary_results_{run_name}.csv"))
+    summary_results.to_csv(os.path.join(dir_path, f"traintest_results.csv"))
 
     # Save config used for this run
-    os.makedirs(dir_path, exist_ok=True)
-    shutil.copy("../configs/model_config.yaml",
-                os.path.join(dir_path, f"config_{run_name}.yaml"))
+    write_config(cfg, os.path.join(dir_path, f"config_frozen.yaml"))
 
-
+    
+    
+    
     # INTERPRETABILITY
-    # examine stored pathway layer activations on test set
-    if args.model == 'hybrid':
-        # TODO, different pathway extraction
-        logger.info("Pathways TODO")
-    elif args.model == 'binn':
+    active_branches = cfg['model']['branches']
+    
+    # Examine stored pathway layer activations on test set
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    logger = get_logger("interpretability", log_path)
+
+    all_attn = []
+    final_model.eval()
+    with torch.no_grad():
+        for batch in test_dataloader:
+            X_mapped = batch['X_mapped'].to(device)
+            X_unmapped = batch['X_unmapped'].to(device)
+            X_clinical = batch['X_clinical'].to(device)
+            _ = final_model(X_mapped, X_unmapped, X_clinical)
+            # `attn_weights` is (batch, n_branches): one row per sample
+            all_attn.append(final_model.attention_fusion.attn_weights.detach().cpu())
+
+    if len(all_attn) == 0:
+        logger.info("No test samples found for attention analysis.")
+    else:
+        attn_tensor = torch.cat(all_attn, dim=0).numpy()
+
+        # Summary statistics
+        mean_w = attn_tensor.mean(axis=0)
+        std_w = attn_tensor.std(axis=0)
+        logger.info("\n=========================================")
+        logger.info("Mean attention weights across test set:")
+        for name, m, s in zip(active_branches, mean_w, std_w):
+            logger.info(f"  {name}: {m:.4f} ± {s:.4f}")
+
+        # Log first few sample-level weights for inspection
+        n_show = min(10, attn_tensor.shape[0])
+        logger.info(f"Sample-level attention weights (first {n_show} samples):")
+        for i in range(n_show):
+            r = attn_tensor[i]
+            string = f"  sample {i+1}: "
+            for branch, attn in zip(active_branches, r):
+                string += f"{branch}={attn:.3f}, "
+            logger.info(string)
+
+        # Save full attention weights to CSV for downstream analysis
+        df_attn = pd.DataFrame(attn_tensor, columns=active_branches)
+        df_attn.to_csv(os.path.join(dir_path, f"attn_weights_{run_name}.csv"), index=False)
+    
+    if 'binn' in active_branches:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         logger = get_logger("interpretability", log_path)
 
         all_activations = []
-        model.eval()
+        final_model.eval()
         with torch.no_grad():
             for batch in test_dataloader:
                 X_mapped = batch['X_mapped'].to(device)
                 X_unmapped = batch['X_unmapped'].to(device)
-                _ = model(X_mapped, X_unmapped)
-                all_activations.append(model.branch.pathway_activations.detach().cpu())
+                X_clinical = batch['X_clinical'].to(device)
+                # run forward to populate branch internals
+                _ = final_model(X_mapped, X_unmapped, X_clinical)
 
-        # Average activation per pathway across all test patients
-        mean_activations = torch.cat(all_activations, dim=0).mean(dim=0).numpy()
-        top_indices = np.argsort(mean_activations)[::-1][:10]
-        top_pathways = [pathway_labels[i] for i in top_indices]
+                if 'binn' not in final_model.branches:
+                    continue
+                binn_branch = final_model.branches['binn']
 
-        logger.info("Top 10 activated pathways:")
-        for rank, (idx, name) in enumerate(zip(top_indices, top_pathways)):
-            logger.info(f"  {rank+1}. {name}  (mean activation: {mean_activations[idx]:.4f})")
+                # pathway_activations is (batch, n_pathways); collect along batch dim
+                act = binn_branch.pathway_activations.detach().cpu()
+                all_activations.append(act)
 
+        if len(all_activations) == 0:
+            logger.info("No pathway activations found for BINN branch.")
+        else:
+            activ_tensor = torch.cat(all_activations, dim=0).numpy()
+
+            # Average activation per pathway across all test patients
+            mean_activations = activ_tensor.mean(axis=0)
+            top_indices = np.argsort(mean_activations)[::-1][:10]
+            top_pathways = [pathway_labels[i] for i in top_indices]
+
+            logger.info("Top 10 activated pathways:")
+            for rank, idx in enumerate(top_indices):
+                name = top_pathways[rank]
+                logger.info(f"  {rank+1}. {name}  (mean activation: {mean_activations[idx]:.4f})")
 
 
 if __name__ == "__main__":

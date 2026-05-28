@@ -30,3 +30,7 @@ def load_config(config_path, script_path):
 
 
 # TODO: add more param validation / setting of default params
+
+def write_config(config_dict, save_path):
+    with open(save_path, 'w') as f:
+        yaml.dump(config_dict, f)
