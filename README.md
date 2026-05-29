@@ -1,16 +1,17 @@
-# Currently: CSCI 184 Final Project
-Final project for CSCI 184: Advanced Machine Learning. 
+# HyBINN: A Hybrid Biologically-Informed Neural Network for Cancer Survival Prediction
 
-A Biologically-Informed Neural Network for Breast Cancer Survival Prediction.
-The model:
-1. Takes gene expression (RNAseq) values as an input
-2. Uses a sparsely connected first layer that maps input genes to known pathways
-3. Moves through two more hidden layers
-4. Outputs a risk score for that patient's survival (an input into Cox Proportional Hazards)
+Personal research project. Manuscript forthcoming.
 
-This repo consists of all files used to preprocess data, build the model, and train and test the model.
+### Neural Network Architecture
 
-### Repo Layout:
+The network contains 3 input branches
+1. Sparse BINN <—— Genes mapped to pathways in Reactome
+2. Gene MLP <—— All other genes (not mapped in Reactome)
+3. Clinical MLP <—— clinical phenotype (T/N/M staging)
+
+The model can be run using any combination of these branches. Each branch produces per-patient risk scores. If multiple branches are used, their risk scores are combined with learned weights into a final risk score per-patient.
+
+### Repo Layout (outdated):
 ```
 hybinn/
 │
@@ -47,16 +48,3 @@ hybinn/
 └── README.md
 ```
 
-
-# Future HyBINN Project
-Research project to create an attentive hybrid biologically-informed neural network for breast cancer survival prediction.
-
-### Neural Network Architecture
-
-The network will use 3 input streams:
-1. Sparse BINN <—— Genes mapped to pathways in Reactome
-2. Dense MLP <—— All other genes (not mapped in Reactome)
-3. Clinical MLP <—— Clinical variables
-
-The three streams will be merged into a single output node using an attention mechanism, so the network learns which inputs are more important based on the patient.
-The final output node provides a CoxPH survival prediction.
