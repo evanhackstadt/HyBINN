@@ -5,16 +5,16 @@ data:
   gene_data_path: "/Users/evan/Documents/GitHub/HyBINN/data/processed/gene_data.csv"
   clinical_data_path: "/Users/evan/Documents/GitHub/HyBINN/data/processed/clinical_data.csv"
   reactome_path: "/Users/evan/Documents/GitHub/HyBINN/data/reactome/Ensembl2Reactome_All_Levels.txt"
-  train: 0.70
-  val:   0.15
-  test:  0.15
+  train: 0.60
+  val:   0.20
+  test:  0.20
   batch_size: 64
   random_seed: 42
 
 # --- Model Architecture ---
 model:
   branches: [binn, gene, clinical]  # can be overwritten by CLI args
-  embedding_dim: 64       # shared across all branches and fusion
+  embedding_dim: 1       # for all branches. 1 means output risk score directly.
   binn:
     pathway_nodes: 400    # actual number determined at runtime based on Reactome
     hidden_nodes: 128
@@ -22,14 +22,14 @@ model:
     hidden_nodes_1: 1024
     hidden_nodes_2: 256
   clinical:
-    hidden_nodes_1: 16
-    hidden_nodes_2: 32
+    hidden_nodes_1: 8
+    hidden_nodes_2: 8
 
 # --- Training ---
 training:
   epochs: 50
   lr: 1.0e-3
-  weight_decay: 1.0e-4
+  weight_decay: 1.0e-3
   early_stopping_patience: 5
   folds: 5
 
