@@ -23,6 +23,9 @@ class ClinicalBranch(nn.Module):
         self.bn2 = nn.BatchNorm1d(hidden_nodes_2)
         # hidden layer 2 --> output layer (embedding)
         self.fc3 = nn.Linear(hidden_nodes_2, embedding_nodes, bias=False)
+        
+        if embedding_nodes == 1:    # risk score output
+            self.fc3.weight.data.uniform_(-0.001, 0.001)
     
     def forward(self, x_mapped, x_unmapped, x_clinical):
         x = x_clinical

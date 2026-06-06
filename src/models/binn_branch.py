@@ -24,6 +24,9 @@ class BINNBranch(nn.Module):
         self.fc2 = nn.Linear(pathway_nodes, hidden_nodes)
         # hidden layer --> hidden layer 2 (embedding)
         self.fc3 = nn.Linear(hidden_nodes, embedding_nodes, bias=False)
+        
+        if embedding_nodes == 1:    # risk score output
+            self.fc3.weight.data.uniform_(-0.001, 0.001)
     
     
     def forward(self, x_mapped, x_unmapped, x_clinical):
@@ -38,7 +41,7 @@ class BINNBranch(nn.Module):
         self.pathway_activations = x  # store it for interpretability
         
         # the following layers are normal
-        x = self.dropout(x)           # TODO: test with/without
+        x = self.dropout(x)
         x = self.tanh(self.fc2(x))
         x = self.dropout(x)
         x = self.tanh(self.fc3(x))

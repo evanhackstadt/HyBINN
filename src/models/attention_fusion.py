@@ -2,7 +2,8 @@ import torch
 import torch.nn as nn
 
 
-# AttentionFusion - takes embeddings from muultiple branches --> attention mechanism --> fused embedding
+# AttentionFusion - takes embeddings from multiple branches --> attention mechanism --> fused embedding
+#                   only called if embedding_nodes > 1 (not using branch risk scores)
 '''
 e_i = Linear(64 → 1)(h_i)          # scalar attention energy per branch
 [a1, a2, a3] = Softmax([e1, e2, e3])  # attention weights, sum to 1
@@ -28,11 +29,6 @@ class AttentionFusion(nn.Module):
         if self.n_branches == 1:
             return h
         
-        # generate a scalar risk score from each branch's embeddings independently
-        
-
-        
-        # OLD EMBEDDING ATTENTION FUSION, TO BE REPLACED
         
         # embeddings --> scalar risk score output
         energies = []
