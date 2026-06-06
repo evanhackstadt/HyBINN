@@ -6,11 +6,15 @@ import numpy as np
 import torch
 from sklearn.model_selection import StratifiedKFold
 
+from utils.seed   import set_seed
+from utils.bootstrap import bootstrap_cindex
 from utils.config import load_config, write_config
+from utils.json_utils import NumpyEncoder
+from utils.splitting import stratified_train_test_split, get_stratified_kfold_indices
+
 from processing.reactome import build_reactome_map, build_mask_matrix
 from processing.split_genes import split_genes
 from datasets.dataset import SurvivalDataset, get_dataloader
-from utils.splitting import stratified_train_test_split, get_stratified_kfold_indices
 
 from models.binn_branch import BINNBranch
 from models.gene_branch import GeneBranch
@@ -84,6 +88,8 @@ def main(branches, config, run_dir, run_name,
     if seed is not None:
         cfg['data']['random_seed'] = seed
 
+    # Set the random seed before anything dataloaders, splitting, etc.
+    set_seed(seed)
 
     # Load dataset
     gene_data_path = cfg['data']['gene_data_path']
@@ -158,8 +164,7 @@ def main(branches, config, run_dir, run_name,
     fold_cindices = []
     fold_best_epochs = []
     train_results_by_epoch = pd.DataFrame(columns=['fold', 'epoch', 'train_loss', 
-                                          'val_loss', 'cindex'])
-    general_results = {}
+                                                   'val_loss', 'cindex'])
 
     for fold, (train_idx, val_idx) in enumerate(get_stratified_kfold_indices(trainval_dataset.y_event.numpy(), cfg)):
         
@@ -197,7 +202,7 @@ def main(branches, config, run_dir, run_name,
         train_results_by_epoch = pd.concat([train_results_by_epoch, fold_results], ignore_index=True)
     
     # Save training results
-    train_results_by_epoch.to_csv(os.path.join(dir_path, f"train_train_results_by_epoch.csv"))
+    # train_results_by_epoch.to_csv(os.path.join(dir_path, f"train_train_results_by_epoch.csv"))
     
     # Log indices for reproducibility
     ids_df.to_csv(os.path.join(dir_path, f"traintest_patient_ids.csv"))
@@ -207,9 +212,18 @@ def main(branches, config, run_dir, run_name,
     cv_stdev_cindex = np.std(fold_cindices)
     mean_best_epoch = int(np.round(np.mean(fold_best_epochs)))
     
-    general_results['CV_mean_cindex'] = cv_mean_cindex
-    general_results['CV_stdev_cindex'] = cv_stdev_cindex
-    general_results['CV_mean_best_epoch'] = mean_best_epoch
+    # Build main results dict
+    results = {
+        "model":             cfg['model']['branches'],
+        "seed":              cfg['data']['random_seed'],
+        "n_trainval":        len(trainval_idx),
+        "n_test":            len(test_idx),
+        "cv_mean_cindex":    float(cv_mean_cindex),
+        "cv_std_cindex":     float(cv_stdev_cindex),
+        "mean_best_epoch":   int(mean_best_epoch),
+        "fold_cindices":     [float(c) for c in fold_cindices],
+        "fold_best_epochs":  fold_best_epochs,
+    }
 
     logger.info("\n=========================================")
     logger.info(f"CV training complete! Mean ± std C-index: {cv_mean_cindex:.4f} ± {cv_stdev_cindex:.4f}")
@@ -237,8 +251,9 @@ def main(branches, config, run_dir, run_name,
     retrain_mean_cindex = np.mean(cindexes)
     retrain_stdev_cindex = np.std(cindexes)
     
-    general_results['Retrain_mean_cindex'] = retrain_mean_cindex
-    general_results['Retrain_stdev_cindex'] = retrain_stdev_cindex
+    # Add retraining to results
+    results["retrain_mean_cindex"] = float(retrain_mean_cindex)
+    results["retrain_std_cindex"]  = float(retrain_stdev_cindex)
 
     # Save final model manually
     torch.save(final_model.state_dict(), best_model_path)
@@ -246,18 +261,43 @@ def main(branches, config, run_dir, run_name,
 
     # TESTING
     
-    avg_test_loss, test_cindex, test_outputs = test(final_model, test_dataloader, best_model_path, log_path)
+    avg_test_loss, test_cindex, test_outputs = test(
+        final_model, test_dataloader, best_model_path, log_path
+    )
 
-    general_results['Test_cindex'] = test_cindex
+    # Bootstrap CI on test predictions
+    boot = bootstrap_cindex(
+        times=test_outputs['times'],
+        events=test_outputs['events'],
+        risk_scores=test_outputs['risk_final'],
+        n_bootstrap=1000,
+        seed=cfg['data']['random_seed']
+    )
+    logger.info(f"Bootstrap 95% CI: [{boot['lower']:.4f}, {boot['upper']:.4f}]")
+
+    results["test_cindex"]   = float(test_cindex)
+    results["test_loss"]     = float(avg_test_loss)
+    results["bootstrap_ci"]  = boot
     
-    # Save model test set per-patient risk scores
-    test_outputs_df = pd.DataFrame(test_outputs, index=ids[test_idx])
-    test_outputs_df.to_csv(os.path.join(dir_path, f"test_outputs.csv"))
-
-    # Save config used for this run
-    write_config(cfg, os.path.join(dir_path, f"config_frozen.yaml"))
-
+    # Save branch weights (if using late fusion)
+    if hasattr(final_model, 'fusion_logits'):
+        import torch.nn.functional as F
+        weights = F.softmax(final_model.fusion_logits.detach().cpu(), dim=0).numpy()
+        branch_names = list(cfg['model']['branches'])
+        results["branch_weights"] = {
+            name: float(w) for name, w in zip(branch_names, weights)
+        }
     
+    # Save patient-level test predictions
+    preds_df = pd.DataFrame({
+        'patient_id':    ids[test_idx],
+        'risk_final':    test_outputs['risk_final'],
+        **{f'risk_{k}': v for k, v in test_outputs.items()
+           if k.startswith('risk_') and k != 'risk_final'},
+        'time':          test_outputs['times'],
+        'event':         test_outputs['events'],
+    })
+    preds_df.to_csv(os.path.join(dir_path, "predictions_test.csv"), index=False)
     
     
     # INTERPRETABILITY
@@ -267,55 +307,6 @@ def main(branches, config, run_dir, run_name,
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     logger = get_logger("interpretability", log_path)
 
-    all_attn = []
-    final_model.eval()
-    with torch.no_grad():
-        for batch in test_dataloader:
-            X_mapped = batch['X_mapped'].to(device)
-            X_unmapped = batch['X_unmapped'].to(device)
-            X_clinical = batch['X_clinical'].to(device)
-            _ = final_model(X_mapped, X_unmapped, X_clinical)
-            
-            if final_model.emb_dim > 1:
-                # `attn_weights` is (batch, n_branches): one row per sample
-                all_attn.append(final_model.attention_fusion.attn_weights.detach().cpu())
-
-    if final_model.emb_dim == 1:
-        if hasattr(final_model, 'weights'):
-            fusion_weights = final_model.weights.detach().cpu().numpy()
-        else:
-            fusion_weights = torch.softmax(final_model.fusion_logits, dim=0).detach().cpu().numpy()
-
-        logger.info("\n=========================================")
-        logger.info("Learned population-level fusion weights for the active branches:")
-        logger.info("These weights are constant across all samples in risk-score fusion mode.")
-        general_results['Fusion_weights'] = {}
-        for name, weight in zip(active_branches, fusion_weights):
-            logger.info(f"  {name}: {weight:.4f}")
-            general_results['Fusion_weights'][name] = weight
-
-    else:
-        logger.info("\n=========================================")
-        logger.info("Embedding-based fusion is active.")
-
-        attn_tensor = torch.cat(all_attn, dim=0).numpy()
-
-        # Summary statistics
-        mean_w = attn_tensor.mean(axis=0)
-        std_w = attn_tensor.std(axis=0)
-        logger.info("Mean attention weights across test set:")
-        general_results['Attention_weights'] = {}
-        for name, m, s in zip(active_branches, mean_w, std_w):
-            logger.info(f"  {name}: {m:.4f} ± {s:.4f}")
-            general_results['Attention_weights'][f'{name}_mean'] = m
-            general_results['Attention_weights'][f'{name}_stdev'] = s
-
-        # Save attention weights to CSV for downstream analysis
-        # df_attn = pd.DataFrame(attn_tensor, columns=active_branches)
-        # df_attn.to_csv(os.path.join(dir_path, f"attention_weights.csv"), index=False)
-
-    
-    
     # Biological Pathways
     if 'binn' in active_branches:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -348,20 +339,30 @@ def main(branches, config, run_dir, run_name,
             mean_activations = activ_tensor.mean(axis=0)
             top_indices = np.argsort(mean_activations)[::-1][:10]
             top_pathways = [pathway_labels[i] for i in top_indices]
-
-            general_results['Top_pathways'] = {}
+            top_activations = [mean_activations[i] for i in top_indices]
+            
+            pathways_dict = {
+                name: float(a) for name, a in zip(top_pathways, top_activations)
+            }
+            
             logger.info("Top 10 activated pathways:")
-            for rank, idx in enumerate(top_indices):
-                name = top_pathways[rank]
-                logger.info(f"  {rank+1}. {name}  (mean activation: {mean_activations[idx]:.4f})")
-                general_results['Top_pathways'][f'Pathway_{rank+1}_name'] = name
-                general_results['Top_pathways'][f'Pathway_{rank+1}_activation'] = mean_activations[idx]
-                
+            logger.info(pathways_dict)
+            
+            results["top_pathways"] = pathways_dict
         
+                
+    # SAVE FILES
     
-    # Save general results
-    with open("results.json", "w") as f:
-        json.dump(general_results, f)
+    # Write all scalar results to a single JSON
+    with open(os.path.join(dir_path, "results.json"), 'w') as f:
+        json.dump(results, f, indent=2, cls=NumpyEncoder)
+
+    logger.info(f"Results saved to {dir_path}/results.json")
+    
+    # Save config used for this run
+    write_config(cfg, os.path.join(dir_path, f"config_frozen.yaml"))
+    
+
 
 
 # ---- CLI Arg Handling ----

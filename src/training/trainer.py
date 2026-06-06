@@ -75,6 +75,8 @@ def evaluate(model, dataloader, loss_fn, device, logger):
     model.eval()
     val_loss = 0
     all_preds, all_times, all_events = [], [], []
+    branch_names = list(model.branches.keys())
+    all_risk_scores = {branch: [] for branch in branch_names}
 
     # run validation set (no need for gradients)
     with torch.no_grad():
@@ -91,6 +93,10 @@ def evaluate(model, dataloader, loss_fn, device, logger):
             all_preds.append(pred.cpu().numpy())
             all_times.append(y_time.cpu().numpy())
             all_events.append(y_event.cpu().numpy())
+            
+            if hasattr(model, 'risk_scores'):
+                for branch, r in zip(branch_names, model.risk_scores):
+                    all_risk_scores[branch].append(r.squeeze().cpu().numpy())
 
     val_loss /= len(dataloader)
     
@@ -99,8 +105,18 @@ def evaluate(model, dataloader, loss_fn, device, logger):
     events = np.concatenate(all_events)
     
     cindex = concordance_index(times, -preds, events)  # negative preds since higher risk = lower survival time
+    
+    outputs = {
+        'risk_final':    preds.flatten(),
+        'times':         times,
+        'events':        events
+    }
+    for branch in branch_names:
+        if len(all_risk_scores[branch]) == 0:
+            continue
+        outputs[f'risk_{branch}'] = np.concatenate(all_risk_scores[branch], axis=0)
 
-    return val_loss, cindex
+    return val_loss, cindex, outputs
 
 
 def train(model, train_loader, val_loader, log_path, config, early_stopping=True):
@@ -140,17 +156,18 @@ def train(model, train_loader, val_loader, log_path, config, early_stopping=True
     patience_counter = 0
     patience = early_stopping_patience
     
-    # Track epoch losses to return for plotting
+    # Track loss and performance results
     train_losses = []
     val_losses = []
     cindexes = []
+    
 
     for epoch in range(epochs):
         
         # train
         logger.info(f"Epoch {epoch+1}\n-------------------------------")
         train_loss = train_one_epoch(model, train_loader, optimizer, loss_fn, device, logger)
-        val_loss, cindex = evaluate(model, val_loader, loss_fn, device, logger)
+        val_loss, cindex, val_outputs = evaluate(model, val_loader, loss_fn, device, logger)
         logger.info(f"Val Loss: {val_loss:.4f} | C-index: {cindex:.4f}\n")  # log evaluation outside of function for now
         
         # store losses
@@ -181,7 +198,7 @@ def train(model, train_loader, val_loader, log_path, config, early_stopping=True
     return train_losses, val_losses, cindexes
 
 
-def test(model, test_loader, best_model_file, log_path):
+def test(model, test_loader, best_model_file, log_path, bootstrap = 1):
     """
     Separate testing loop to be run after training, getting a final unbiased evaluation of the model
     
@@ -202,9 +219,10 @@ def test(model, test_loader, best_model_file, log_path):
     
     # Load and test model
     model.load_state_dict(torch.load(best_model_file))
-    avg_test_loss, test_cindex = evaluate(model, test_loader, loss_fn, device, logger)
+    
+    avg_test_loss, test_cindex, test_outputs = evaluate(model, test_loader, loss_fn, device, logger)
     
     logger.info(f"FINAL TEST Average Loss: {avg_test_loss:.4f}")
     logger.info(f"FINAL TEST C-index: {test_cindex:.4f}")
     
-    return avg_test_loss, test_cindex
+    return avg_test_loss, test_cindex, test_outputs
