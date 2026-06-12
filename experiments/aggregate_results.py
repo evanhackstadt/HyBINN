@@ -21,7 +21,11 @@ import numpy as np
 import pandas as pd
 
 
-ALL_CONFIGS = ["binn_only", "clinical_only", "binn_clinical", "full_hybinn"]
+ALL_CONFIGS = [
+    "binn_only", "gene_only", "clinical_only",
+    "binn_gene", "binn_clinical", "gene_clinical",
+    "full_hybinn"
+]
 DEFAULT_RUNS_DIR = os.path.join(os.path.dirname(__file__), "runs")
 
 

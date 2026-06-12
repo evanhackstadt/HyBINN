@@ -23,8 +23,11 @@ import time
 
 ALL_CONFIGS = {
     "binn_only":      ["binn"],
+    "gene_only":      ["gene"],
     "clinical_only":  ["clinical"],
+    "binn_gene":      ["binn", "gene"],
     "binn_clinical":  ["binn", "clinical"],
+    "gene_clinical":  ["gene", "clinical"],
     "full_hybinn":    ["binn", "gene", "clinical"],
 }
 
