@@ -22,13 +22,13 @@ import time
 # ---- Experiment definitions ----
 
 ALL_CONFIGS = {
-    "binn_only":      ["binn"],
-    "gene_only":      ["gene"],
-    "clinical_only":  ["clinical"],
-    "binn_gene":      ["binn", "gene"],
-    "binn_clinical":  ["binn", "clinical"],
-    "gene_clinical":  ["gene", "clinical"],
-    "full_hybinn":    ["binn", "gene", "clinical"],
+    "binn":          ["binn"],
+    "gene":          ["gene"],
+    "clinical":      ["clinical"],
+    "binn_gene":     ["binn", "gene"],
+    "binn_clinical": ["binn", "clinical"],
+    "gene_clinical": ["gene", "clinical"],
+    "full_hybinn":   ["binn", "gene", "clinical"],
 }
 
 ALL_SEEDS = list(range(10))
@@ -90,7 +90,7 @@ def main():
     success = 0
     failed  = []
 
-    print(f"\nRunning {total} experiments ({len(args.configs)} configs × {len(args.seeds)} seeds)")
+    print(f"\nRunning {total} experiments ({len(args.configs)} configs x {len(args.seeds)} seeds)")
     print(f"Output directory: {BASE_RUN_DIR}\n")
 
     for model_name in args.configs:

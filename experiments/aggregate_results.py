@@ -22,7 +22,7 @@ import pandas as pd
 
 
 ALL_CONFIGS = [
-    "binn_only", "gene_only", "clinical_only",
+    "binn", "gene", "clinical",
     "binn_gene", "binn_clinical", "gene_clinical",
     "full_hybinn"
 ]
