@@ -370,7 +370,7 @@ def main(branches, config, run_dir, run_name,
 def parse_args():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--branches', nargs='+', default=[])
+    parser.add_argument('--branches', nargs='+', default=[], choices=['binn', 'gene', 'clinical'])
     parser.add_argument('--config',   type=str,  default='../configs/model_config.yaml')
     parser.add_argument('--run_dir',  type=str,  default=None)
     parser.add_argument('--run_name', type=str,  default=None)
