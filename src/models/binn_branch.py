@@ -3,11 +3,11 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-# BINNBranch - takes genes mapped to pathways --> outputs 64-node embedding
+# BINNBranch - takes genes mapped to pathways --> embedding or risk score
 '''
 mapped_genes → [sparse Linear → Tanh] → pathways
              → [Linear → Tanh → Dropout(0.5)] → hidden
-             → [Linear → Tanh → Dropout(0.5)] → 64 (embedding)
+             → [Linear → Tanh → Dropout(0.5)] → output
 '''
 class BINNBranch(nn.Module):
     

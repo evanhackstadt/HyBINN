@@ -1,11 +1,11 @@
 import torch.nn as nn
 
 
-# GeneBranch - takes unmapped genes (residual) --> outputs 64-node embedding
+# GeneBranch - takes unmapped genes (residual) --> outputs embedding or scalar risk score
 '''
 7823 → [Linear → BN → ReLU → Dropout(0.5)] → 1024
      → [Linear → BN → ReLU → Dropout(0.5)] → 256
-     → [Linear, no activation] → 64 (embedding)
+     → [Linear, no activation] → output
 '''
 class GeneBranch(nn.Module):
     

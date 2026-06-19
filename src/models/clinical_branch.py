@@ -1,11 +1,11 @@
 import torch.nn as nn
 
 
-# ClinicalBranch - takes T/N/M pathologic stage variables --> expands into 64-node embedding
+# ClinicalBranch - takes T/N/M pathologic stage variables --> embedding or risk score
 '''
-3 → [Linear → BN → ReLU → Dropout(0.3)] → 16
-  → [Linear → BN → ReLU → Dropout(0.3)] → 32
-  → [Linear, no activation] → 64 (embedding)
+3 → [Linear → BN → ReLU → Dropout(0.3)] → 8
+  → [Linear → BN → ReLU → Dropout(0.3)] → 8
+  → [Linear, no activation] → output
 '''
 class ClinicalBranch(nn.Module):
     
