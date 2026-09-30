@@ -2,7 +2,7 @@
 
 Personal research project under the mentorship of Dr. Hamed Akbari, Santa Clara University.
 
-Project report forthcoming.
+Full written project report is [here](https://github.com/evanhackstadt/HyBINN/blob/be7a62f630976be38910ff3b883d3a7558826aff/HyBINN%20Project%20Report.pdf)
 
 ## Neural Network Architecture
 
