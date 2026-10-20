@@ -56,8 +56,7 @@ Baseline choice
 The baseline is the all-zero pathway-activation vector -- i.e. "no pathway
 signal reaches the rest of the network." This is the standard reference
 point for tanh-space attribution (mirrors DeepLIFT's typical all-zero
-reference in P-NET). Report this choice explicitly in the write-up: IG
-attributions are always relative to a stated counterfactual, not absolute.
+reference in P-NET).
 
 --------------------------------------------------------------------------
 Usage
@@ -68,15 +67,25 @@ Usage
         --run_dir experiments/runs/full_hybinn/seed_0 \
         --out_dir experiments/figures
 
+    python pathway_attribution.py \
+        --runs_dir experiments/runs --model_name full_hybinn --both
+
 Requires that <run_dir> contains best_model.pt and config_frozen.yaml,
 i.e. it must be a run directory produced by train_hybinn.py.
 """
 
 import os
 import argparse
+import json
 
 import numpy as np
 import pandas as pd
+from itertools import combinations
+from scipy import stats
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+
 import torch
 import torch.nn.functional as F
 from captum.attr import IntegratedGradients
@@ -244,7 +253,7 @@ def compute_pathway_attributions(model, dataloader, device, n_steps=50, logger=N
 # ---- Single-run core logic (reused by both single-run and multi-seed modes) ----
 
 def run_single_seed(run_dir, config_path=None, reactome_path_override=None,
-                    n_steps=50, out_dir=None, save_outputs=True, logger=None):
+                    n_steps=50, out_dir=None, save_outputs=True, logger=None, untrained=False):
     """
     Loads one frozen run (a single (model_config, seed) checkpoint), reproduces
     its exact preprocessing + test split, and computes pathway-level Integrated
@@ -260,6 +269,8 @@ def run_single_seed(run_dir, config_path=None, reactome_path_override=None,
         save_outputs (bool): if True, writes pathway_ig_rankings.csv and the
                               per-patient attribution .npy to out_dir
         logger: shared logger, or None to create a fresh one
+        untrained (bool): optionally instantiate a fresh model (rather than a pretrained seed)
+                          to obtain a baseline for pathway IG stability
 
     Returns:
         pathway_labels (list[str]): Reactome pathway IDs, in matrix-column order
@@ -298,6 +309,10 @@ def run_single_seed(run_dir, config_path=None, reactome_path_override=None,
     pathway_map = build_reactome_map(reactome_path)
     mapped, unmapped, valid_pathways = split_genes(gene_df, pathway_map)
     mask, gene_labels, pathway_labels = build_mask_matrix(mapped, pathway_map, valid_pathways)
+    logger.info(
+        f"Reactome mapping: {len(mapped)} mapped genes, "
+        f"{len(unmapped)} unmapped genes, {len(valid_pathways)} pathways"
+    )
 
     x_mapped = gene_df[gene_labels].to_numpy(dtype=np.float32)
     x_unmapped = gene_df[unmapped].to_numpy(dtype=np.float32)
@@ -312,11 +327,17 @@ def run_single_seed(run_dir, config_path=None, reactome_path_override=None,
     # ---- Rebuild architecture and load frozen weights ----
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     embed_dim = cfg['model']['embedding_dim']
+    
+    if untrained:
+        set_seed(seed + 1000)    # fresh init; the test split was already drawn from cfg seed
+        logger.info(f"Set seed to {seed + 1000} for a fresh untrained model init. Will NOT be loading best_model.pt.")
+    
     model = instantiate_model(cfg, mapped, unmapped, clinical_df.columns.to_list(),
                               mask, pathway_labels, embed_dim)
+    if not untrained:
+        best_model_path = os.path.join(run_dir, "best_model.pt")
+        model.load_state_dict(torch.load(best_model_path, map_location=device))
 
-    best_model_path = os.path.join(run_dir, "best_model.pt")
-    model.load_state_dict(torch.load(best_model_path, map_location=device))
     model.to(device)
     model.eval()
 
@@ -348,151 +369,189 @@ def run_single_seed(run_dir, config_path=None, reactome_path_override=None,
     return pathway_labels, mean_abs_attr, all_attrs, deltas, reactome_path
 
 
-# ---- Multi-seed aggregation ----
 
-def aggregate_over_seeds(runs_dir, model_name, seeds, reactome_path_override=None,
-                         n_steps=50, out_dir=None, min_mean_percentile=50.0, logger=None):
-    """
-    Runs pathway-level IG attribution independently for each seed of one model
-    config (e.g. all 10 seeds of "full_hybinn"), then aggregates into mean ± std
-    attribution per pathway across seeds -- mirroring how aggregate_results.py
-    aggregates C-index across seeds, and analyze_results.py's pathway_rankings.csv.
+# ---- Stability analysis (replaces aggregate_over_seeds) ----
 
-    Each seed's own pathway_ig_rankings.csv / .npy are still written to their
-    individual run_dir (via run_single_seed), so per-seed results remain
-    independently inspectable; this only ADDS a combined summary on top.
+def load_pathway_sizes(run_dir):
+    """Genes per pathway node (mask column sums). Depends only on data + Reactome, not on seed."""
+    cfg = load_config(os.path.join(run_dir, "config_frozen.yaml"), os.path.abspath(__file__))
+    df = pd.read_csv(cfg['data']['gene_data_path'], index_col=0)
+    gene_df = df.drop(columns=['OS.time', 'OS'])
+    pathway_map = build_reactome_map(cfg['data']['reactome_path'])
+    mapped, unmapped, valid_pathways = split_genes(gene_df, pathway_map)
+    mask, _, pathway_labels = build_mask_matrix(mapped, pathway_map, valid_pathways)
+    sizes = pd.Series(mask.sum(axis=0), index=pathway_labels)
+    return sizes
 
-    Args:
-        runs_dir (str): base directory containing <model_name>/seed_<k>/ subdirs
-        model_name (str): e.g. "full_hybinn", "binn_only"
-        seeds (list[int]): which seeds to include
-        reactome_path_override (str): override reactome path for all seeds
-        n_steps (int): IG interpolation steps
-        out_dir (str): where to save the aggregated CSV (default: <runs_dir>/<model_name>)
-        min_mean_percentile (float): a pathway must have mean_abs_ig_attribution at or
-                                      above this percentile (across ALL pathways) to be
-                                      eligible for the consistency ranking. Because
-                                      n_seeds is identical across every pathway,
-                                      consistency_score = mean/SE = sqrt(n)/CV --
-                                      i.e. it is mathematically just inverse-CV, and
-                                      carries NO information about the size of the
-                                      mean. Ranking by consistency_score alone (no
-                                      floor) will surface pathways that are reliably
-                                      SMALL, not reliably important -- the same
-                                      pitfall as ranking genes by t-statistic with no
-                                      fold-change floor in differential expression.
-                                      Default 50.0 = require at least median raw
-                                      attribution magnitude before "consistent" is a
-                                      meaningful claim.
-        logger: shared logger, or None to create a fresh one
 
-    Returns:
-        agg_df (DataFrame): full table, unfiltered, with both rankings and an
-                             `above_mean_floor` flag indicating consistency-ranking
-                             eligibility under min_mean_percentile
-    """
-    logger = logger or get_logger(__name__)
-    out_dir = out_dir or os.path.join(runs_dir, model_name)
-    os.makedirs(out_dir, exist_ok=True)
-
-    per_pathway_attrs = {}    # pathway_id -> list of per-seed mean_abs_attr
-    name_map = None
-
+def ensure_seed_outputs(runs_dir, model_name, seeds, n_steps, reactome_path_override,
+                        untrained, logger):
+    """Runs IG only for seeds whose per-seed rankings CSV doesn't already exist."""
     for seed in seeds:
         run_dir = os.path.join(runs_dir, model_name, f"seed_{seed}")
         if not os.path.isdir(run_dir):
-            logger.info(f"[MISSING] {run_dir} -- skipping seed {seed}")
+            logger.info(f"[MISSING] {run_dir}")
             continue
+        out = os.path.join(run_dir, "untrained") if untrained else run_dir
+        if os.path.exists(os.path.join(out, "pathway_ig_rankings.csv")):
+            continue
+        run_single_seed(run_dir=run_dir, reactome_path_override=reactome_path_override,
+                        n_steps=n_steps, out_dir=out, untrained=untrained, logger=logger)
 
-        logger.info(f"\n{'=' * 50}\nSeed {seed}\n{'=' * 50}")
-        pathway_labels, mean_abs_attr, all_attrs, deltas, reactome_path = run_single_seed(
-            run_dir=run_dir,
-            reactome_path_override=reactome_path_override,
-            n_steps=n_steps,
-            save_outputs=True,   # keep per-seed CSV/npy for inspection/debugging
-            logger=logger,
+
+def _load_stability_rankings(runs_dir, model_name, seeds, subdir=""):
+    """Load per-seed rankings as a pathways-by-seeds matrix."""
+    cols, names = {}, {}
+    for seed in seeds:
+        path = os.path.join(
+            runs_dir, model_name, f"seed_{seed}", subdir, "pathway_ig_rankings.csv"
         )
+        if not os.path.exists(path):
+            print(f"[MISSING] {path}")
+            continue
+        rankings = pd.read_csv(path).set_index("pathway_id")
+        cols[seed] = rankings["mean_abs_ig_attribution"]
+        names.update(rankings["pathway_name"].to_dict())
 
-        for pid, val in zip(pathway_labels, mean_abs_attr):
-            per_pathway_attrs.setdefault(pid, []).append(val)
+    return pd.DataFrame(cols).dropna(), names
 
-        if name_map is None:
-            name_map = build_reactome_name_map(reactome_path)
 
-    if not per_pathway_attrs:
-        raise RuntimeError(f"No valid seed runs found under {os.path.join(runs_dir, model_name)}")
+def _pairwise_spearman_rhos(matrix):
+    """Calculate pairwise Spearman correlations between seed columns."""
+    return np.array([
+        stats.spearmanr(matrix[first], matrix[second])[0]
+        for first, second in combinations(matrix.columns, 2)
+    ])
 
-    rows = []
-    for pid, vals in per_pathway_attrs.items():
-        vals = np.array(vals)
-        rows.append({
-            "pathway_id": pid,
-            "pathway_name": name_map.get(pid, pid),
-            "mean_abs_ig_attribution": vals.mean(),
-            "std_abs_ig_attribution": vals.std(),
-            "n_seeds": len(vals),
-        })
 
-    agg_df = pd.DataFrame(rows)
+def summarize_stability(runs_dir, model_name, seeds, out_dir=None, top_k=20,
+                        subdir="", tag=""):
+    """
+    Cross-seed stability of pathway attributions. No filtering, no ranking. 
+    top_k is fixed in advance, not tuned.
+    subdir="untrained" reads the untrained-network control instead.
+    """
+    out_dir = out_dir or os.path.join(runs_dir, model_name)
+    os.makedirs(out_dir, exist_ok=True)
 
-    # ---- Naive ranking: by raw mean attribution ----
-    agg_df = agg_df.sort_values("mean_abs_ig_attribution", ascending=False).reset_index(drop=True)
-    agg_df["rank_by_mean"] = np.arange(1, len(agg_df) + 1)
+    M, names = _load_stability_rankings(runs_dir, model_name, seeds, subdir)
+    n_path, n_seeds = M.shape
+    print(f"{n_path} pathways x {n_seeds} seeds")
 
-    # ---- Consistency metrics ----
-    agg_df["se_abs_ig_attribution"] = agg_df["std_abs_ig_attribution"] / np.sqrt(agg_df["n_seeds"])
-    agg_df["cv_abs_ig_attribution"] = agg_df["std_abs_ig_attribution"] / agg_df["mean_abs_ig_attribution"]
-    agg_df["consistency_score"] = agg_df["mean_abs_ig_attribution"] / agg_df["se_abs_ig_attribution"].replace(0, np.nan)
+    # 1. Pairwise Spearman between seeds (full vectors)
+    rho = _pairwise_spearman_rhos(M)
 
-    # ---- Magnitude floor: only pathways at/above this percentile are eligible for
-    # ---- the consistency ranking, so "consistent" can't just mean "consistently small" ----
-    mean_floor = np.percentile(agg_df["mean_abs_ig_attribution"], min_mean_percentile)
-    agg_df["above_mean_floor"] = agg_df["mean_abs_ig_attribution"] >= mean_floor
+    # 2. Top-k selection counts vs. chance
+    in_topk = pd.DataFrame({s: M[s].rank(ascending=False) <= top_k for s in M.columns})
+    n_in_topk = in_topk.sum(axis=1)
+    min_freq = int(np.ceil(n_seeds / 2))
+    observed = int((n_in_topk >= min_freq).sum())
+    expected = n_path * stats.binom.sf(min_freq - 1, n_seeds, top_k / n_path)
 
-    qualified = agg_df[agg_df["above_mean_floor"]].copy()
-    qualified = qualified.sort_values("consistency_score", ascending=False).reset_index(drop=True)
-    qualified["rank_by_consistency_filtered"] = np.arange(1, len(qualified) + 1)
+    # 3. Size confound
+    seed0_dir = os.path.join(runs_dir, model_name, f"seed_{M.columns[0]}")
+    sizes = load_pathway_sizes(seed0_dir).reindex(M.index)
+    rho_size = np.array([stats.spearmanr(M[s], sizes)[0] for s in M.columns])
 
-    agg_df = agg_df.merge(
-        qualified[["pathway_id", "rank_by_consistency_filtered"]],
-        on="pathway_id", how="left"
+    summary = {
+        "n_pathways": n_path, "n_seeds": n_seeds, "top_k": top_k,
+        "pairwise_rho_mean": float(rho.mean()), "pairwise_rho_min": float(rho.min()),
+        "pairwise_rho_max": float(rho.max()), "n_pairs": len(rho),
+        "chance_rho_sd": float(1 / np.sqrt(n_path - 1)),
+        f"n_pathways_in_topk_of_>= {min_freq}_seeds": observed,
+        "n_expected_by_chance": float(expected),
+        "rho_attribution_vs_size_mean": float(rho_size.mean()),
+        "rho_attribution_vs_size_range": [float(rho_size.min()), float(rho_size.max())],
+    }
+    with open(os.path.join(out_dir, f"stability_summary{tag}.json"), "w") as f:
+        json.dump(summary, f, indent=2)
+    print(json.dumps(summary, indent=2))
+
+    # Per-pathway table (descriptive; Table 3 = head(10))
+    tbl = pd.DataFrame({
+        "pathway_id": M.index,
+        "pathway_name": [names[p] for p in M.index],
+        "n_genes": sizes.values,
+        "mean_abs_ig": M.mean(axis=1).values,
+        "sd_abs_ig": M.std(axis=1, ddof=1).values,
+        f"n_seeds_in_top{top_k}": n_in_topk.values,
+    }).sort_values("mean_abs_ig", ascending=False)
+    tbl["cv"] = tbl["sd_abs_ig"] / tbl["mean_abs_ig"]
+    tbl.insert(0, "rank_by_mean", np.arange(1, n_path + 1))
+    tbl.to_csv(os.path.join(out_dir, f"pathway_stability{tag}.csv"), index=False)
+
+    # Two-panel figure
+    fig, ax = plt.subplots(1, 2, figsize=(10, 4))
+    ax[0].hist(rho, bins=15, color="steelblue", edgecolor="black")
+    ax[0].axvline(0, ls="--", c="gray")
+    ax[0].set_xlabel("Spearman ρ between seeds (all pathways)")
+    ax[0].set_ylabel(f"Seed pairs (n={len(rho)})")
+    ax[1].scatter(sizes, M.mean(axis=1), s=8, alpha=0.5, color="steelblue")
+    ax[1].set_xscale("log"); ax[1].set_yscale("log")
+    ax[1].set_xlabel("Genes in pathway node"); ax[1].set_ylabel("Mean |IG| across seeds")
+    ax[1].set_title(f"ρ = {rho_size.mean():.2f}", fontsize=10)
+    plt.tight_layout()
+    fig.savefig(os.path.join(out_dir, f"pathway_stability{tag}.png"), dpi=200, bbox_inches="tight")
+    plt.close(fig)
+    return summary
+
+
+def plot_stability_comparison(runs_dir, model_name, seeds, out_dir=None):
+    """Save comparison figures for trained and untrained attribution stability."""
+    out_dir = out_dir or os.path.join(runs_dir, model_name)
+    os.makedirs(out_dir, exist_ok=True)
+
+    fig, ax = plt.subplots(figsize=(6, 4))
+    scatter_data = []
+    for subdir, label, color in (
+        ("", "Trained", "steelblue"),
+        ("untrained", "Untrained", "darkorange"),
+    ):
+        matrix, _ = _load_stability_rankings(runs_dir, model_name, seeds, subdir)
+        rho = _pairwise_spearman_rhos(matrix)
+        ax.hist(rho, alpha=0.55, color=color, edgecolor="black",
+                label=f"{label} (n={len(rho)} seed pairs)")
+
+        seed0_dir = os.path.join(
+            runs_dir, model_name, f"seed_{matrix.columns[0]}"
+        )
+        sizes = load_pathway_sizes(seed0_dir).reindex(matrix.index)
+        rho_size = np.array([
+            stats.spearmanr(matrix[seed], sizes)[0] for seed in matrix.columns
+        ])
+        scatter_data.append((label, color, sizes, matrix.mean(axis=1), rho_size.mean()))
+
+    ax.axvline(0, ls="--", c="gray")
+    ax.set_xlabel("Spearman ρ between seeds (all pathways)")
+    ax.set_ylabel("Seed pairs")
+    # ax.set_title("Trained vs. untrained pathway attribution stability")
+    ax.legend()
+    plt.tight_layout()
+    fig.savefig(
+        os.path.join(out_dir, "pathway_stability_comparison.png"),
+        dpi=200,
+        bbox_inches="tight",
     )
+    plt.close(fig)
 
-    # ---- Unfiltered consistency ranking, kept ONLY to make the magnitude-floor's
-    # ---- effect visible -- do not report this one on its own (see docstring) ----
-    unfiltered_by_consistency = agg_df.sort_values("consistency_score", ascending=False)
+    fig, ax = plt.subplots(2, 1, figsize=(6, 8), sharex=True, sharey=False)
+    for axis, (label, color, sizes, mean_attribution, rho_size_mean) in zip(
+        ax, scatter_data
+    ):
+        axis.scatter(sizes, mean_attribution, s=8, alpha=0.5, color=color)
+        axis.set_xscale("log")
+        axis.set_yscale("log")
+        axis.set_ylabel("Mean |IG| across seeds")
+        axis.set_title(f"{label}: ρ = {rho_size_mean:.2f}", fontsize=10)
 
-    n_high_cv_in_top10 = (agg_df.sort_values("rank_by_mean").head(10)["cv_abs_ig_attribution"] > 1.0).sum()
-    logger.info(f"\n{n_high_cv_in_top10}/10 pathways in the naive mean-ranked top 10 have CV > 1 "
-               f"(std exceeds mean across seeds) -- these are outlier-seed-driven, not stable signal.")
-
-    logger.info(f"\nMagnitude floor: pathways must be >= {min_mean_percentile:.0f}th percentile "
-               f"of mean |IG| attribution ({mean_floor:.6g}) to be eligible for consistency ranking. "
-               f"{len(qualified)}/{len(agg_df)} pathways qualify.")
-
-    out_path = os.path.join(out_dir, f"pathway_ig_rankings_{model_name}_aggregated.csv")
-    agg_df.to_csv(out_path, index=False)
-    logger.info(f"\nSaved aggregated pathway IG rankings ({len(agg_df)} pathways, "
-               f"up to {len(seeds)} seeds) to {out_path}")
-
-    logger.info("\nTop 10 by raw mean |IG attribution| (naive ranking):")
-    logger.info(agg_df.sort_values("rank_by_mean").head(10)
-               [["pathway_name", "mean_abs_ig_attribution", "std_abs_ig_attribution",
-                 "cv_abs_ig_attribution"]].to_string(index=False))
-
-    logger.info("\nTop 10 by consistency score WITHOUT magnitude floor "
-               "(for comparison only -- mathematically just inverse-CV, do not report this list):")
-    logger.info(unfiltered_by_consistency.head(10)
-               [["pathway_name", "mean_abs_ig_attribution", "cv_abs_ig_attribution",
-                 "rank_by_mean"]].to_string(index=False))
-
-    logger.info(f"\nTop 10 by consistency score AMONG pathways above the "
-               f"{min_mean_percentile:.0f}th-percentile magnitude floor (report this one):")
-    logger.info(qualified.head(10)
-               [["pathway_name", "mean_abs_ig_attribution", "cv_abs_ig_attribution",
-                 "consistency_score", "rank_by_mean"]].to_string(index=False))
-
-    return agg_df
+    ax[-1].set_xlabel("Genes in pathway node")
+    fig.tight_layout()
+    fig.savefig(
+        os.path.join(out_dir, "pathway_stability_size_comparison.png"),
+        dpi=200,
+        bbox_inches="tight",
+    )
+    plt.close(fig)
 
 
 # ---- CLI ----
@@ -500,22 +559,24 @@ def aggregate_over_seeds(runs_dir, model_name, seeds, reactome_path_override=Non
 def main():
     parser = argparse.ArgumentParser()
 
-    # Single-run mode
+    # Single-run mode (not recommended)
     parser.add_argument('--run_dir', type=str, default=None,
                         help="Single frozen run directory (contains best_model.pt, config_frozen.yaml)")
     parser.add_argument('--config', type=str, default=None,
                         help="Path to config_frozen.yaml (default: <run_dir>/config_frozen.yaml)")
 
-    # Multi-seed aggregation mode
+    # Multi-seed mode (use for both trained and untrained IG + summary)
     parser.add_argument('--runs_dir', type=str, default=None,
-                        help="Base runs directory, e.g. experiments/runs (enables aggregation mode)")
+                        help="Base runs directory, e.g. experiments/runs (for summary)")
     parser.add_argument('--model_name', type=str, default=None,
                         help="Model config subfolder under --runs_dir, e.g. full_hybinn")
     parser.add_argument('--seeds', nargs='+', type=int, default=list(range(10)),
                         help="Seeds to include in aggregation mode (default: 0-9)")
-    parser.add_argument('--min_mean_percentile', type=float, default=50.0,
-                        help="Percentile of raw mean |IG| attribution a pathway must "
-                             "clear to be eligible for consistency ranking (default: 50 = median)")
+    attribution_mode = parser.add_mutually_exclusive_group()
+    attribution_mode.add_argument('--untrained', action='store_true',
+                                  help="Control: IG on freshly initialized (untrained) networks")
+    attribution_mode.add_argument('--both', action='store_true',
+                                  help="Compute trained and untrained stability and overlay their rho histograms")
 
     # Shared options
     parser.add_argument('--reactome_path', type=str, default=None,
@@ -528,17 +589,29 @@ def main():
     logger = get_logger(__name__)
 
     if args.runs_dir and args.model_name:
-        aggregate_over_seeds(
-            runs_dir=args.runs_dir,
-            model_name=args.model_name,
-            seeds=args.seeds,
-            reactome_path_override=args.reactome_path,
-            n_steps=args.n_steps,
-            out_dir=args.out_dir,
-            min_mean_percentile=args.min_mean_percentile,
-            logger=logger,
-        )
+        if args.both:
+            for untrained in (False, True):
+                ensure_seed_outputs(
+                    args.runs_dir, args.model_name, args.seeds,
+                    args.n_steps, args.reactome_path, untrained, logger
+                )
+                summarize_stability(
+                    args.runs_dir, args.model_name, args.seeds, args.out_dir,
+                    subdir="untrained" if untrained else "",
+                    tag="_untrained" if untrained else "",
+                )
+            plot_stability_comparison(
+                args.runs_dir, args.model_name, args.seeds, args.out_dir
+            )
+        else:
+            ensure_seed_outputs(args.runs_dir, args.model_name, args.seeds,
+                                args.n_steps, args.reactome_path, args.untrained, logger)
+            summarize_stability(args.runs_dir, args.model_name, args.seeds, args.out_dir,
+                                subdir="untrained" if args.untrained else "",
+                                tag="_untrained" if args.untrained else "")
     elif args.run_dir:
+        if args.both:
+            parser.error("--both requires --runs_dir and --model_name")
         run_single_seed(
             run_dir=args.run_dir,
             config_path=args.config,
@@ -547,9 +620,10 @@ def main():
             out_dir=args.out_dir,
             save_outputs=True,
             logger=logger,
+            untrained=args.untrained,
         )
     else:
-        parser.error("Provide either --run_dir (single seed) or --runs_dir + --model_name (aggregate over seeds).")
+        parser.error("Provide either --run_dir (single seed) or --runs_dir + --model_name (summarize seeds).")
 
 
 if __name__ == "__main__":

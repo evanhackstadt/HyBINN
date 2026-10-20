@@ -154,6 +154,10 @@ def main(branches, config, run_dir, run_name,
     logger.info(f"train_hybinn.py log started {datetime.datetime.now()}")
     logger.info("=========================================")
     logger.info(f"Model Active Branches: {cfg['model']['branches']}")
+    logger.info(
+        f"Reactome mapping: {len(mapped)} mapped genes, "
+        f"{len(unmapped)} unmapped genes, {len(valid_pathways)} pathways"
+    )
     logger.info("=========================================")
 
 

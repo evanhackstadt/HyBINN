@@ -38,6 +38,7 @@ warnings.filterwarnings("ignore")
 
 import numpy as np
 import pandas as pd
+from scipy import stats
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -45,6 +46,7 @@ import matplotlib.ticker as mticker
 import seaborn as sns
 from lifelines import KaplanMeierFitter, CoxPHFitter
 from lifelines.statistics import logrank_test
+from lifelines.plotting import add_at_risk_counts
 
 
 # ── Config ──────────────────────────────────────────────────────────────────
@@ -67,8 +69,8 @@ CONFIG_LABELS = {
     "baseline_coxph_combined": "Baseline CoxPH\n(combined)",
 }
 
-# Seaborn palette — one colour per config, consistent across all figures
-PALETTE = sns.color_palette("Set2", n_colors=len(CONFIG_ORDER))
+# Keep Set2 for the ablation configs and use distinct greys for CoxPH baselines.
+PALETTE = sns.color_palette("Set2", n_colors=7) + sns.color_palette("Greys", n_colors=5)[1:4]
 CONFIG_COLORS = {cfg: PALETTE[i] for i, cfg in enumerate(CONFIG_ORDER)}
 
 ALL_TASKS = [
@@ -76,9 +78,8 @@ ALL_TASKS = [
     "cindex_boxplot",
     "km_binary",
     "km_3group",
-    "pathway_rankings",
-    "pathway_barplot",
-    "statistical_tests"
+    "statistical_tests",
+    "paired_contrasts"
 ]
 TASK_ALIASES = {
     "all": ALL_TASKS,
@@ -318,298 +319,137 @@ def make_boxplot(results_df, out_dir):
     print(f"Box plot saved → {out_path}")
 
 
-# ── 3. Kaplan-Meier Curves ───────────────────────────────────────────────────
+# ── 3. Paired Contrasts ──────────────────────────────────────────────────────
 
-def make_km_plot_binary(predictions_df, out_dir, label="Full HyBINN"):
+# Each tuple: (config A, config B, label).  Delta = A - B; positive favors A.
+# Config names must match CONFIG_ORDER ("binn", not "binn_only").
+CONTRASTS = [
+    ("binn",          "binn_gene",   "BINN vs BINN+Gene"),          # effect of adding unmapped genes
+    ("binn_clinical", "full_hybinn", "BINN+Clinical vs Full"),      # effect of adding unmapped genes
+    ("binn",          "gene",        "BINN vs Gene MLP"),           # sparse/mapped vs dense/unmapped
+    ("binn",          "clinical",    "BINN vs Clinical"),           # expression vs T/N/M only
+]
+
+
+def _holm(pvals):
+    """Holm step-down adjusted p-values (controls family-wise error rate)."""
+    p = np.asarray(pvals, dtype=float)
+    m = len(p)
+    adj = np.empty(m)
+    running = 0.0
+    for rank, i in enumerate(np.argsort(p)):
+        running = max(running, (m - rank) * p[i])   # enforce monotonicity
+        adj[i] = min(1.0, running)
+    return adj
+
+
+def make_paired_contrasts(results_df, out_dir, contrasts=CONTRASTS,
+                          n_boot=10_000, test_train_ratio=0.25, rng_seed=0):
     """
-    Splits patients into 2 risk groups (low/high) and plots KM survival curves.
+    Paired differences in test C-index between pre-specified config pairs.
 
-    Args:
-        predictions_df: DataFrame with columns [risk_final, time, event]
-        label: plot title label (model config name)
+    For each (A, B): d_i = C_A,i - C_B,i across seeds i (same seed = same test split).
+    Reports mean/median/SD of d, and three 95% intervals for the mean difference:
+      - bootstrap : percentile bootstrap over the seed-level differences
+      - t         : classical paired t-interval (assumes independent seeds)
+      - NB        : Nadeau-Bengio variance-corrected t-interval, which accounts for
+                    seeds being overlapping resamples of the same patients
+                    (variance inflated by 1/n + n_test/n_train)
+    Also reports an exact-ish Wilcoxon signed-rank p and Holm adjustment across this
+    contrast family only (m = len(contrasts)).
+
+    test_train_ratio: n_test / n_trainval  (212/847 = 0.25 here)
     """
-    df = predictions_df[["risk_final", "time", "event"]].dropna()
+    # pivot raises if any (seed, config) is duplicated -> doubles as an integrity check
+    wide = results_df.pivot(index="seed", columns="config", values="test_cindex")
+    rng = np.random.default_rng(rng_seed)
 
-    threshold = df["risk_final"].median()
-
-    high_risk = df[df["risk_final"] >= threshold]
-    low_risk  = df[df["risk_final"] <  threshold]
-
-    n_high = len(high_risk)
-    n_low  = len(low_risk)
-
-    # Log-rank test
-    lr = logrank_test(
-        durations_A=high_risk["time"],  events_A=high_risk["event"],
-        durations_B=low_risk["time"],   events_B=low_risk["event"],
-    )
-    p_val = lr.p_value
-
-    # Hazard Ratio (fit univariate Cox model with binary risk group covariate
-    df = predictions_df[["risk_final", "time", "event"]].dropna().copy()
-
-    # Binary covariate: 1 = high risk, 0 = low risk
-    # CoxPHFitter will give HR for a one-unit increase in this covariate,
-    # i.e., the HR of high-risk vs. low-risk group directly.
-    df["high_risk"] = (df["risk_final"] >= threshold).astype(int)
-
-    cph = CoxPHFitter()
-    cph.fit(df[["high_risk", "time", "event"]],
-            duration_col="time", event_col="event")
-
-    summary = cph.summary
-    hr       = float(summary.loc["high_risk", "exp(coef)"])
-    hr_lower = float(summary.loc["high_risk", "exp(coef) lower 95%"])
-    hr_upper = float(summary.loc["high_risk", "exp(coef) upper 95%"])
-    p_val    = float(summary.loc["high_risk", "p"])
-
-    p_str = "p < 0.001" if p_val < 0.001 else f"p = {p_val:.4f}"
-    print(f"  Hazard Ratio: {hr:.3f} (95% CI: {hr_lower:.3f}-{hr_upper:.3f}), {p_str}")
-
-    # Plot
-    fig, ax = plt.subplots(figsize=(7, 5))
-
-    kmf_high = KaplanMeierFitter()
-    kmf_low  = KaplanMeierFitter()
-
-    kmf_high.fit(high_risk["time"], high_risk["event"], label=f"High risk  (n={n_high})")
-    kmf_low.fit(low_risk["time"],   low_risk["event"],   label=f"Low risk   (n={n_low})")
-
-    kmf_high.plot_survival_function(ax=ax, ci_show=True, color="firebrick",
-                                    linewidth=2)
-    kmf_low.plot_survival_function( ax=ax, ci_show=True, color="steelblue",
-                                    linewidth=2)
-
-    # Annotate plot
-    p_str = f"p < 0.001" if p_val < 0.001 else f"p = {p_val:.4f}"
-    ax.text(0.97, 0.97,
-            f"Log-rank {p_str}\nHR = {hr:.3f} (95% CI: {hr_lower:.3f}-{hr_upper:.3f})",
-            transform=ax.transAxes, ha="right", va="top",
-            fontsize=9, bbox=dict(boxstyle="round,pad=0.3", fc="white", ec="gray", alpha=0.8))
-
-    ax.set_xlabel("Time (days)", fontsize=11)
-    ax.set_ylabel("Survival probability", fontsize=11)
-    ax.set_title(f"Kaplan-Meier (split on median risk score)\n{label}", fontsize=11)
-    ax.set_ylim(0, 1.05)
-    ax.legend(fontsize=9, loc="lower left")
-    ax.grid(which="major", linestyle="--", alpha=0.3)
-    sns.despine(ax=ax)
-
-    plt.tight_layout()
-    out_path = os.path.join(out_dir, "kaplan_meier.png")
-    fig.savefig(out_path, dpi=400, bbox_inches="tight")
-    plt.close(fig)
-    print(f"Low/High KM plot saved → {out_path}  (log-rank {p_str})")
-
-
-def make_km_plot_3group(predictions_df, out_dir, label="Full HyBINN"):
-    """
-    Three-group KM plot split on tertiles (33rd / 66th percentile of risk score).
-    Use tertiles rather than arbitrary thresholds — maximizes balance and is
-    the standard approach in survival stratification literature.
-
-    NOTE on pooled predictions: if predictions_df pools multiple seeds, the
-    curves are smoother but confidence bands are artificially narrow (effective
-    n = single test set). Appropriate for visualization; do not report pooled
-    log-rank p as if n = n_pooled.
-    """
-    from lifelines import CoxPHFitter
-
-    df = predictions_df[["risk_final", "time", "event"]].dropna().copy()
-
-    t33 = df["risk_final"].quantile(0.333)
-    t67 = df["risk_final"].quantile(0.667)
-
-    df["risk_group"] = pd.cut(
-        df["risk_final"],
-        bins=[-np.inf, t33, t67, np.inf],
-        labels=["Low risk", "Moderate risk", "High risk"]
-    )
-
-    n_low  = (df["risk_group"] == "Low risk").sum()
-    n_mod  = (df["risk_group"] == "Moderate risk").sum()
-    n_high = (df["risk_group"] == "High risk").sum()
-
-    # Pairwise log-rank tests (low vs high is the primary comparison)
-    from lifelines.statistics import logrank_test, multivariate_logrank_test
-
-    # Omnibus test across all three groups
-    omnibus = multivariate_logrank_test(
-        df["time"], df["risk_group"], df["event"]
-    )
-    p_omni = omnibus.p_value
-
-    # Primary pairwise: low vs high
-    lh = logrank_test(
-        df[df["risk_group"] == "Low risk"]["time"],
-        df[df["risk_group"] == "High risk"]["time"],
-        df[df["risk_group"] == "Low risk"]["event"],
-        df[df["risk_group"] == "High risk"]["event"],
-    )
-
-    # Cox HR: use ordinal encoding (0/1/2) to get a single HR per one-tier step
-    df["risk_ordinal"] = df["risk_group"].map(
-        {"Low risk": 0, "Moderate risk": 1, "High risk": 2}
-    )
-    cph = CoxPHFitter()
-    cph.fit(df[["risk_ordinal", "time", "event"]],
-            duration_col="time", event_col="event")
-    summary  = cph.summary
-    hr       = float(summary.loc["risk_ordinal", "exp(coef)"])
-    hr_lower = float(summary.loc["risk_ordinal", "exp(coef) lower 95%"])
-    hr_upper = float(summary.loc["risk_ordinal", "exp(coef) upper 95%"])
-
-    print(f"  Omnibus log-rank p = {p_omni:.4f}")
-    print(f"  Low vs High log-rank p = {lh.p_value:.4f}")
-    print(f"  Per-tier HR = {hr:.3f} (95% CI: {hr_lower:.3f}–{hr_upper:.3f})")
-
-    # ── Plot ──────────────────────────────────────────────────────
-    colors = {"Low risk": "steelblue", "Moderate risk": "goldenrod", "High risk": "firebrick"}
-
-    fig, ax = plt.subplots(figsize=(7, 5))
-    for group, color in colors.items():
-        sub = df[df["risk_group"] == group]
-        kmf = KaplanMeierFitter()
-        kmf.fit(sub["time"], sub["event"],
-                label=f"{group}  (n={len(sub)})")
-        kmf.plot_survival_function(ax=ax, ci_show=True, color=color, linewidth=2)
-
-    p_omni_str = "p < 0.001" if p_omni < 0.001 else f"p = {p_omni:.4f}"
-    p_lh_str   = "p < 0.001" if lh.p_value < 0.001 else f"p = {lh.p_value:.4f}"
-
-    annotation = (
-        f"Omnibus log-rank {p_omni_str}\n"
-        f"Low vs High {p_lh_str}\n"
-        f"Per-tier HR = {hr:.3f} ({hr_lower:.3f}–{hr_upper:.3f})"
-    )
-    ax.text(0.97, 0.97, annotation,
-            transform=ax.transAxes, ha="right", va="top", fontsize=8.5,
-            bbox=dict(boxstyle="round,pad=0.3", fc="white", ec="gray", alpha=0.8))
-
-    ax.set_xlabel("Time (days)", fontsize=11)
-    ax.set_ylabel("Survival probability", fontsize=11)
-    ax.set_title(f"Kaplan-Meier (tertile split)\n{label}", fontsize=11)
-    ax.set_ylim(0, 1.05)
-    ax.legend(fontsize=9, loc="lower left")
-    ax.grid(which="major", linestyle="--", alpha=0.3)
-    sns.despine(ax=ax)
-    plt.tight_layout()
-
-    out_path = os.path.join(out_dir, "kaplan_meier_3group.png")
-    fig.savefig(out_path, dpi=400, bbox_inches="tight")
-    plt.close(fig)
-    print(f"  3-group KM saved → {out_path}")
-
-
-# ── 4. OLD Pathway Analysis ──────────────────────────────────────────────────────
-# based on mean activation; replaced by integrated gradients in pathway_attribution.py
-
-'''
-def build_reactome_name_map(reactome_path):
-    """
-    Reads the Ensembl2Reactome TSV and returns {ReactomePathwayID: PathwayName}.
-    """
-    df = pd.read_csv(reactome_path, delimiter="\t",
-                     names=["EnsemblID", "ReactomePathwayID", "URL",
-                            "PathwayName", "Evidence", "Species"])
-    df = df[df["Species"] == "Homo sapiens"]
-    return df.drop_duplicates("ReactomePathwayID").set_index("ReactomePathwayID")["PathwayName"].to_dict()
-
-
-def aggregate_pathways(results_df, reactome_path=None, out_dir="."):
-    """
-    Aggregates top_pathways dicts across all (config, seed) pairs.
-    Reports mean activation and frequency of appearance in top-10 per run.
-
-    If reactome_path is provided, decodes pathway IDs to human-readable names.
-    """
-    # Collect all pathway activation values across all runs
-    all_activations = {}   # {pathway_id: [activation_values]}
-    n_runs = 0
-
-    for _, row in results_df.iterrows():
-        tp = row.get("top_pathways")
-        if not tp or not isinstance(tp, dict):
+    rows = []
+    for a, b, label in contrasts:
+        if a not in wide.columns or b not in wide.columns:
+            print(f"  [SKIP] {label}: config missing from results")
             continue
-        n_runs += 1
-        for pid, val in tp.items():
-            all_activations.setdefault(pid, []).append(float(val))
 
-    if not all_activations:
-        print("  No pathway data found in results.")
-        return None
+        d = (wide[a] - wide[b]).dropna().to_numpy()
+        n = len(d)
+        mean, sd = d.mean(), d.std(ddof=1)
+        tcrit = stats.t.ppf(0.975, n - 1)
 
-    # Decode names
-    name_map = {}
-    if reactome_path and os.path.exists(reactome_path):
-        name_map = build_reactome_name_map(reactome_path)
-    else:
-        print("  [NOTE] No Reactome file provided or found — pathway IDs will not be decoded.")
+        # percentile bootstrap over seed-level differences
+        boots = d[rng.integers(0, n, size=(n_boot, n))].mean(axis=1)
+        boot_lo, boot_hi = np.percentile(boots, [2.5, 97.5])
 
-    records = []
-    for pid, vals in all_activations.items():
-        records.append({
-            "pathway_id":       pid,
-            "pathway_name":     name_map.get(pid, pid),   # fall back to ID if not found
-            "mean_activation":  np.mean(vals),
-            "std_activation":   np.std(vals),
-            "n_appearances":    len(vals),        # how many runs had this in their top-10
-            "pct_appearances":  100.0 * len(vals) / n_runs,
+        # classical and Nadeau-Bengio-corrected t-intervals
+        se_t  = sd / np.sqrt(n)
+        se_nb = sd * np.sqrt(1.0 / n + test_train_ratio)
+
+        try:
+            p_w = stats.wilcoxon(d).pvalue
+        except ValueError:      # all differences exactly zero
+            p_w = 1.0
+
+        rows.append({
+            "contrast":     label,
+            "A":            a,
+            "B":            b,
+            "n_pairs":      n,
+            "mean_diff":    mean,
+            "median_diff":  np.median(d),
+            "sd_diff":      sd,
+            "ci_boot_lo":   boot_lo,       "ci_boot_hi":  boot_hi,
+            "ci_t_lo":      mean - tcrit * se_t,    "ci_t_hi":  mean + tcrit * se_t,
+            "ci_nb_lo":     mean - tcrit * se_nb,   "ci_nb_hi": mean + tcrit * se_nb,
+            "n_A_better":   int((d > 0).sum()),
+            "wilcoxon_p":   p_w,
         })
 
-    pathway_df = pd.DataFrame(records).sort_values("mean_activation", ascending=False)
+    if not rows:
+        print("  No contrasts computed.")
+        return None
 
-    out_path = os.path.join(out_dir, "pathway_rankings.csv")
-    pathway_df.to_csv(out_path, index=False)
-    print(f"\nPathway rankings saved → {out_path}")
+    df = pd.DataFrame(rows)
+    df["wilcoxon_p_holm"] = _holm(df["wilcoxon_p"])
+    # Ready-to-paste string for the manuscript table
+    df["summary"] = df.apply(
+        lambda r: f"{r.mean_diff:+.3f} [{r.ci_boot_lo:+.3f}, {r.ci_boot_hi:+.3f}]", axis=1)
 
-    # Print top 20
-    print(f"\nTop 20 pathways by mean activation (across {n_runs} runs):")
-    print(pathway_df.head(20).to_string(index=False))
+    out_path = os.path.join(out_dir, "paired_contrasts.csv")
+    df.to_csv(out_path, index=False)
+    print(f"\nPaired contrasts saved → {out_path}")
+    print(df[["contrast", "n_pairs", "summary", "n_A_better",
+              "wilcoxon_p", "wilcoxon_p_holm"]].to_string(index=False))
+    return df
 
-    return pathway_df
 
+def make_contrast_forest(contrast_df, out_dir):
+    """Forest plot: mean paired difference with bootstrap (thick) and NB-corrected (thin) CIs."""
+    df = contrast_df.iloc[::-1].reset_index(drop=True)    # first contrast at top
+    y = np.arange(len(df))
 
-def make_pathway_barplot(pathway_df, out_dir, top_n=20):
-    """
-    Horizontal bar chart of top-N pathways by mean activation.
-    Bar width = mean activation, error bars = std across seeds.
-    Color encodes % of runs the pathway appeared in (frequency).
-    """
-    df = pathway_df.head(top_n).copy()
-    # Truncate long names for readability
-    df["label"] = df["pathway_name"].apply(lambda x: x[:55] + "…" if len(str(x)) > 55 else x)
-    df = df[::-1]  # reverse so top pathway is at top of plot
+    fig, ax = plt.subplots(figsize=(7.5, 0.9 * len(df) + 1.4))
+    ax.hlines(y, df["ci_nb_lo"], df["ci_nb_hi"], color="lightgray", linewidth=7,
+              label="95% CI, variance-corrected (Nadeau–Bengio)")
+    ax.hlines(y, df["ci_boot_lo"], df["ci_boot_hi"], color="steelblue", linewidth=3,
+              label="95% bootstrap CI over seeds")
+    ax.plot(df["mean_diff"], y, "ko", zorder=3, label="Mean paired difference")
+    ax.axvline(0, color="gray", linestyle="--", linewidth=1)
 
-    norm = plt.Normalize(0, 100)
-    cmap = plt.cm.YlOrRd
-    colors = [cmap(norm(v)) for v in df["pct_appearances"]]
-
-    fig, ax = plt.subplots(figsize=(9, max(6, top_n * 0.35)))
-    bars = ax.barh(df["label"], df["mean_activation"],
-                   xerr=df["std_activation"], color=colors,
-                   edgecolor="black", linewidth=0.4,
-                   error_kw=dict(elinewidth=0.8, capsize=2))
-
-    sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
-    sm.set_array([])
-    cbar = fig.colorbar(sm, ax=ax, shrink=0.6, pad=0.02)
-    cbar.set_label("% runs in top-10", fontsize=9)
-
-    ax.set_xlabel("Mean pathway activation (± std)", fontsize=10)
-    ax.set_title(f"Top {top_n} Reactome pathways by mean activation\nacross all HyBINN runs", fontsize=11)
-    ax.grid(axis="x", linestyle="--", alpha=0.4)
+    ax.set_yticks(y)
+    ax.set_yticklabels(df["contrast"], fontsize=9)
+    ax.set_xlabel("Paired difference in test C-index (first config − second)", fontsize=10)
+    ax.grid(axis="x", linestyle="--", alpha=0.3)
+    ax.legend(fontsize=8, loc="upper right", bbox_to_anchor=(0, 0, 1, 0.9))
     sns.despine(ax=ax)
     plt.tight_layout()
 
-    out_path = os.path.join(out_dir, "pathway_barplot.png")
+    out_path = os.path.join(out_dir, "paired_contrasts_forest.png")
     fig.savefig(out_path, dpi=200, bbox_inches="tight")
     plt.close(fig)
-    print(f"Pathway bar plot saved → {out_path}")
-'''
+    print(f"Contrast forest plot saved → {out_path}")
 
 
-# ── 5. Statistical Tests ─────────────────────────────────────────────────────
+
+# ── 4. Statistical Tests ─────────────────────────────────────────────────────
 
 def make_statistical_tests(results_df, out_dir):
     """
@@ -620,6 +460,7 @@ def make_statistical_tests(results_df, out_dir):
     seed index produces the same train/test split for all configurations.
 
     Saves:
+        paired_contrasts.csv      — C-Index per-seed difference
         statistical_tests.txt     — omnibus result + pairwise table
         pairwise_pvalues.csv      — raw and corrected p-values
         pairwise_heatmap.png      — heatmap of corrected p-values
@@ -734,6 +575,197 @@ def make_statistical_tests(results_df, out_dir):
 
 
 
+# ── 5. Kaplan-Meier Curves ───────────────────────────────────────────────────
+
+def make_km_plot_binary(predictions_df, out_dir, seed, label="Full HyBINN"):
+    """
+    Splits patients into 2 risk groups (low/high) and plots KM survival curves.
+
+    Args:
+        predictions_df: DataFrame with columns [risk_final, time, event]
+        label: plot title label (model config name)
+    """
+    df = predictions_df[["risk_final", "time", "event"]].dropna()
+
+    threshold = df["risk_final"].median()
+
+    high_risk = df[df["risk_final"] >= threshold]
+    low_risk  = df[df["risk_final"] <  threshold]
+
+    n_high = len(high_risk)
+    n_low  = len(low_risk)
+
+    # Log-rank test
+    lr = logrank_test(
+        durations_A=high_risk["time"],  events_A=high_risk["event"],
+        durations_B=low_risk["time"],   events_B=low_risk["event"],
+    )
+    p_val = lr.p_value
+
+    # Hazard Ratio (fit univariate Cox model with binary risk group covariate
+    df = predictions_df[["risk_final", "time", "event"]].dropna().copy()
+
+    # Binary covariate: 1 = high risk, 0 = low risk
+    # CoxPHFitter will give HR for a one-unit increase in this covariate,
+    # i.e., the HR of high-risk vs. low-risk group directly.
+    df["high_risk"] = (df["risk_final"] >= threshold).astype(int)
+
+    cph = CoxPHFitter()
+    cph.fit(df[["high_risk", "time", "event"]],
+            duration_col="time", event_col="event")
+
+    summary = cph.summary
+    hr       = float(summary.loc["high_risk", "exp(coef)"])
+    hr_lower = float(summary.loc["high_risk", "exp(coef) lower 95%"])
+    hr_upper = float(summary.loc["high_risk", "exp(coef) upper 95%"])
+    p_val    = float(summary.loc["high_risk", "p"])
+
+    p_str = "p < 0.001" if p_val < 0.001 else f"p = {p_val:.4f}"
+    print(f"  Hazard Ratio: {hr:.3f} (95% CI: {hr_lower:.3f}-{hr_upper:.3f}), {p_str}")
+
+    # Plot
+    fig, ax = plt.subplots(figsize=(8, 6))
+
+    kmf_high = KaplanMeierFitter()
+    kmf_low  = KaplanMeierFitter()
+
+    kmf_high.fit(high_risk["time"], high_risk["event"], label=f"High risk  (n={n_high})")
+    kmf_low.fit(low_risk["time"],   low_risk["event"],   label=f"Low risk   (n={n_low})")
+
+    kmf_high.plot_survival_function(ax=ax, ci_show=True, color="firebrick",
+                                    linewidth=2)
+    kmf_low.plot_survival_function( ax=ax, ci_show=True, color="steelblue",
+                                    linewidth=2)
+
+    # Annotate plot
+    if seed != "all":
+        p_str = f"p < 0.001" if p_val < 0.001 else f"p = {p_val:.4f}"
+        ax.text(0.97, 0.97,
+                f"Log-rank {p_str}\nHR = {hr:.3f} (95% CI: {hr_lower:.3f}-{hr_upper:.3f})",
+                transform=ax.transAxes, ha="right", va="top",
+                fontsize=9, bbox=dict(boxstyle="round,pad=0.3", fc="white", ec="gray", alpha=0.8))
+    
+    add_at_risk_counts(kmf_high, kmf_low, ax=ax)
+    ax.set_xlabel("Time (days)", fontsize=11)
+    ax.set_ylabel("Survival probability", fontsize=11)
+    ax.set_title(f"Kaplan-Meier, median split ({label} {seed})", fontsize=11)
+    ax.set_ylim(0, 1.05)
+    ax.legend(fontsize=9, loc="lower left")
+    ax.grid(which="major", linestyle="--", alpha=0.3)
+    sns.despine(ax=ax)
+    
+    plt.tight_layout()
+    out_path = os.path.join(out_dir, "kaplan_meier.png")
+    fig.savefig(out_path, dpi=400, bbox_inches="tight")
+    plt.close(fig)
+    print(f"Low/High KM plot saved → {out_path}  (log-rank {p_str})")
+
+
+def make_km_plot_3group(predictions_df, out_dir, seed, label="Full HyBINN"):
+    """
+    Three-group KM plot split on tertiles (33rd / 66th percentile of risk score).
+    Use tertiles rather than arbitrary thresholds — maximizes balance and is
+    the standard approach in survival stratification literature.
+
+    NOTE on pooled predictions: if predictions_df pools multiple seeds, the
+    curves are smoother but confidence bands are artificially narrow (effective
+    n = single test set). Appropriate for visualization; do not report pooled
+    log-rank p as if n = n_pooled.
+    """
+    from lifelines import CoxPHFitter
+
+    df = predictions_df[["risk_final", "time", "event"]].dropna().copy()
+
+    t33 = df["risk_final"].quantile(0.333)
+    t67 = df["risk_final"].quantile(0.667)
+
+    df["risk_group"] = pd.cut(
+        df["risk_final"],
+        bins=[-np.inf, t33, t67, np.inf],
+        labels=["Low risk", "Moderate risk", "High risk"]
+    )
+
+    n_low  = (df["risk_group"] == "Low risk").sum()
+    n_mod  = (df["risk_group"] == "Moderate risk").sum()
+    n_high = (df["risk_group"] == "High risk").sum()
+
+    # Pairwise log-rank tests (low vs high is the primary comparison)
+    from lifelines.statistics import logrank_test, multivariate_logrank_test
+
+    # Omnibus test across all three groups
+    omnibus = multivariate_logrank_test(
+        df["time"], df["risk_group"], df["event"]
+    )
+    p_omni = omnibus.p_value
+
+    # Primary pairwise: low vs high
+    lh = logrank_test(
+        df[df["risk_group"] == "Low risk"]["time"],
+        df[df["risk_group"] == "High risk"]["time"],
+        df[df["risk_group"] == "Low risk"]["event"],
+        df[df["risk_group"] == "High risk"]["event"],
+    )
+
+    # Cox HR: use ordinal encoding (0/1/2) to get a single HR per one-tier step
+    df["risk_ordinal"] = df["risk_group"].map(
+        {"Low risk": 0, "Moderate risk": 1, "High risk": 2}
+    )
+    cph = CoxPHFitter()
+    cph.fit(df[["risk_ordinal", "time", "event"]],
+            duration_col="time", event_col="event")
+    summary  = cph.summary
+    hr       = float(summary.loc["risk_ordinal", "exp(coef)"])
+    hr_lower = float(summary.loc["risk_ordinal", "exp(coef) lower 95%"])
+    hr_upper = float(summary.loc["risk_ordinal", "exp(coef) upper 95%"])
+
+    print(f"  Omnibus log-rank p = {p_omni:.4f}")
+    print(f"  Low vs High log-rank p = {lh.p_value:.4f}")
+    print(f"  Per-tier HR = {hr:.3f} (95% CI: {hr_lower:.3f}–{hr_upper:.3f})")
+
+    # ── Plot ──────────────────────────────────────────────────────
+    colors = {"Low risk": "steelblue", "Moderate risk": "goldenrod", "High risk": "firebrick"}
+
+    fig, ax = plt.subplots(figsize=(9, 7))
+    kmfs = []
+    for group, color in colors.items():
+        sub = df[df["risk_group"] == group]
+        kmf = KaplanMeierFitter()
+        kmf.fit(sub["time"], sub["event"],
+                label=f"{group}  (n={len(sub)})")
+        kmf.plot_survival_function(ax=ax, ci_show=True, color=color, linewidth=2)
+        kmfs.append(kmf)
+    
+    add_at_risk_counts(*kmfs, ax=ax)
+
+    p_omni_str = "p < 0.001" if p_omni < 0.001 else f"p = {p_omni:.4f}"
+    p_lh_str   = "p < 0.001" if lh.p_value < 0.001 else f"p = {lh.p_value:.4f}"
+
+    if seed != "all":
+        annotation = (
+            f"Omnibus log-rank {p_omni_str}\n"
+            f"Low vs High {p_lh_str}\n"
+            f"Per-tier HR = {hr:.3f} ({hr_lower:.3f}–{hr_upper:.3f})"
+        )
+        ax.text(0.97, 0.97, annotation,
+                transform=ax.transAxes, ha="right", va="top", fontsize=8.5,
+                bbox=dict(boxstyle="round,pad=0.3", fc="white", ec="gray", alpha=0.8))
+
+    ax.set_xlabel("Time (days)", fontsize=11)
+    ax.set_ylabel("Survival probability", fontsize=11)
+    ax.set_title(f"Kaplan-Meier, tertile split ({label} {seed})", fontsize=11)
+    ax.set_ylim(0, 1.05)
+    ax.legend(fontsize=9, loc="lower left")
+    ax.grid(which="major", linestyle="--", alpha=0.3)
+    sns.despine(ax=ax)
+    plt.tight_layout()
+
+    out_path = os.path.join(out_dir, "kaplan_meier_3group.png")
+    fig.savefig(out_path, dpi=400, bbox_inches="tight")
+    plt.close(fig)
+    print(f"  3-group KM saved → {out_path}")
+
+
+
 # ── CLI ──────────────────────────────────────────────────────────────────────
 
 def parse_args():
@@ -789,9 +821,19 @@ def main():
     if is_enabled("cindex_boxplot", args.tasks):
         print("\n── 2. Box-and-Whisker Plot ──")
         make_boxplot(results_df, args.out_dir)
+    
+    if is_enabled("paired_contrasts", args.tasks):
+        print("\n── 3. Paired Contrasts ──")
+        contrast_df = make_paired_contrasts(results_df, args.out_dir)
+        if contrast_df is not None:
+            make_contrast_forest(contrast_df, args.out_dir)
+    
+    if is_enabled("statistical_tests", args.tasks):
+        print("\n── 4. Statistical Tests ──")
+        make_statistical_tests(results_df, args.out_dir)
 
     if any(is_enabled(t, args.tasks) for t in ("km_binary", "km_3group")):
-        print("\n── 3. Kaplan-Meier Curves ──")
+        print("\n── 5. Kaplan-Meier Curves ──")
 
         pred_paths = resolve_prediction_paths(
             args.predictions, args.runs_dir, args.km_model, args.km_seed
@@ -803,33 +845,13 @@ def main():
             if preds_df is not None:
                 label = CONFIG_LABELS.get(args.km_model, args.km_model)
                 if is_enabled("km_binary", args.tasks):
-                    make_km_plot_binary(preds_df, args.out_dir, label=label)
+                    make_km_plot_binary(preds_df, args.out_dir, args.km_seed, label=label)
                 if is_enabled("km_3group", args.tasks):
-                    make_km_plot_3group(preds_df, args.out_dir, label=label)
+                    make_km_plot_3group(preds_df, args.out_dir, args.km_seed, label=label)
         else:
             print("  No prediction files found. Skipping KM plot.")
             print("  Tip: ensure predictions_test.csv exists in your run directories,")
             print("       or pass --predictions path/to/predictions_test.csv")
-
-    '''
-    if any(is_enabled(t, args.tasks) for t in ("pathway_rankings", "pathway_barplot")):
-        print("\n── 4. Pathway Analysis ──")
-
-        # Filter to BINN-containing configs (only those save top_pathways)
-        binn_configs = [c for c in CONFIG_ORDER if "binn" in c]
-        binn_results = results_df[results_df["config"].isin(binn_configs)]
-
-        if binn_results.empty:
-            print("  No BINN results found. Skipping pathway analysis.")
-        else:
-            pathway_df = aggregate_pathways(binn_results, args.reactome, args.out_dir)
-            if pathway_df is not None and is_enabled("pathway_barplot"):
-                make_pathway_barplot(pathway_df, args.out_dir, top_n=20)
-    '''
-    
-    if is_enabled("statistical_tests", args.tasks):
-        print("\n── 5. Statistical Tests ──")
-        make_statistical_tests(results_df, args.out_dir)
     
     print("\n── Done ──")
     print(f"All outputs saved to: {os.path.abspath(args.out_dir)}")
