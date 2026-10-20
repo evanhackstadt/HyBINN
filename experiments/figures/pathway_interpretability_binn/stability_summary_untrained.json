@@ -1,0 +1,17 @@
+{
+  "n_pathways": 491,
+  "n_seeds": 10,
+  "top_k": 20,
+  "pairwise_rho_mean": 0.016492833617807894,
+  "pairwise_rho_min": -0.06404357580298027,
+  "pairwise_rho_max": 0.11888426723329538,
+  "n_pairs": 45,
+  "chance_rho_sd": 0.045175395145262566,
+  "n_pathways_in_topk_of_>= 5_seeds": 0,
+  "n_expected_by_chance": 0.011678567441160302,
+  "rho_attribution_vs_size_mean": 0.138726102753602,
+  "rho_attribution_vs_size_range": [
+    0.07072658036318238,
+    0.1993880440228776
+  ]
+}

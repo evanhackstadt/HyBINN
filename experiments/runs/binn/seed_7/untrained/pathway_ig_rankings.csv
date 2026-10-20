@@ -1,0 +1,492 @@
+pathway_id,pathway_name,mean_abs_ig_attribution
+R-HSA-1638074,Keratan sulfate/keratin metabolism,1.7385457304952678e-05
+R-HSA-109704,PI3K Cascade,1.6854136353620992e-05
+R-HSA-110330,Recognition and association of DNA glycosylase with site containing an affected purine,1.6398493333952487e-05
+R-HSA-9820841,M-decay: degradation of maternal mRNAs by maternally stored factors,1.637419998963577e-05
+R-HSA-9022692,Regulation of MECP2 expression and activity,1.6150586920985164e-05
+R-HSA-114508,Effects of PIP2 hydrolysis,1.5665064278343864e-05
+R-HSA-9634815,Transcriptional Regulation by NPAS4,1.4520253519321696e-05
+R-HSA-1660661,Sphingolipid de novo biosynthesis,1.4385522118412335e-05
+R-HSA-3000157,Laminin interactions,1.421636929352039e-05
+R-HSA-73728,RNA Polymerase I Promoter Opening,1.4064205368861497e-05
+R-HSA-5334118,DNA methylation,1.346921305965476e-05
+R-HSA-917729,Endosomal Sorting Complex Required For Transport (ESCRT),1.3411546351850257e-05
+R-HSA-68962,Activation of the pre-replicative complex,1.3388692726873554e-05
+R-HSA-73933,Resolution of Abasic Sites (AP sites),1.309569045533689e-05
+R-HSA-9675126,Diseases of mitotic cell cycle,1.2888818395998215e-05
+R-HSA-159230,Transport of the SLBP Dependant Mature mRNA,1.277838600626873e-05
+R-HSA-2173796,SMAD2/SMAD3:SMAD4 heterotrimer regulates transcription,1.2716428467812154e-05
+R-HSA-4641262,Disassembly of the destruction complex and recruitment of AXIN to the membrane,1.2611602034115479e-05
+R-HSA-5676590,NIK-->noncanonical NF-kB signaling,1.2170640278325695e-05
+R-HSA-8941326,RUNX2 regulates bone development,1.1974713546700305e-05
+R-HSA-176974,Unwinding of DNA,1.1973370593359664e-05
+R-HSA-427359,SIRT1 negatively regulates rRNA expression,1.1360353415961865e-05
+R-HSA-1483166,Synthesis of PA,1.1220489989983108e-05
+R-HSA-9860927,"Turbulent (oscillatory, disturbed) flow shear stress activates signaling by PIEZO1 and integrins in endothelial cells",1.1131251717226768e-05
+R-HSA-8854050,FBXL7 down-regulates AURKA during mitotic entry and in early mitosis,1.1048495823710646e-05
+R-HSA-9958863,SLC-mediated transport of amino acids,1.1010358302614942e-05
+R-HSA-69186,Lagging Strand Synthesis,1.0802617040583422e-05
+R-HSA-2024096,HS-GAG degradation,1.077622801352901e-05
+R-HSA-933542,TRAF6 mediated NF-kB activation,1.0658291470038337e-05
+R-HSA-1566977,Fibronectin matrix formation,1.064736565888925e-05
+R-HSA-1793185,Chondroitin sulfate/dermatan sulfate metabolism,1.025489665655557e-05
+R-HSA-5675221,Negative regulation of MAPK pathway,1.0201443348018185e-05
+R-HSA-977068,Termination of O-glycan biosynthesis,1.0047079151693604e-05
+R-HSA-168325,Viral Messenger RNA Synthesis,9.9722360425308e-06
+R-HSA-70263,Gluconeogenesis,9.896054523413716e-06
+R-HSA-9640148,Infection with Enterobacteria,9.789002049318312e-06
+R-HSA-9864848,Complex IV assembly,9.640017096116951e-06
+R-HSA-442742,CREB1 phosphorylation through NMDA receptor-mediated activation of RAS signaling,9.51011919908215e-06
+R-HSA-180292,GAB1 signalosome,9.422577040137277e-06
+R-HSA-9619483,Activation of AMPK downstream of NMDARs,9.391236289557731e-06
+R-HSA-5635838,Activation of SMO,9.37474147243873e-06
+R-HSA-9615710,Late endosomal microautophagy,9.364605597681071e-06
+R-HSA-844456,The NLRP3 inflammasome,9.315273885280476e-06
+R-HSA-8964043,Plasma lipoprotein clearance,9.31299245200918e-06
+R-HSA-181429,Serotonin Neurotransmitter Release Cycle,9.302578622942178e-06
+R-HSA-3560801,Defective B3GAT3 causes JDSSDHD,9.285380232247408e-06
+R-HSA-8854214,TBC/RABGAPs,9.265610129534643e-06
+R-HSA-389958,Cooperation of Prefoldin and TriC/CCT  in actin and tubulin folding,9.148004036553961e-06
+R-HSA-9648002,RAS processing,9.065356948593491e-06
+R-HSA-110314,Recognition of DNA damage by PCNA-containing replication complex,8.949059661898428e-06
+R-HSA-9635486,Infection with Mycobacterium tuberculosis,8.899599148786923e-06
+R-HSA-68616,Assembly of the ORC complex at the origin of replication,8.899448960755407e-06
+R-HSA-165054,Rev-mediated nuclear export of HIV RNA,8.789139760985882e-06
+R-HSA-5669034,TNFs bind their physiological receptors,8.762594201617984e-06
+R-HSA-1971475,Glycosaminoglycan-protein linkage region biosynthesis,8.736947418072008e-06
+R-HSA-76046,RNA Polymerase III Transcription Initiation,8.710791104768426e-06
+R-HSA-9762114,GSK3B and BTRC:CUL1-mediated-degradation of NFE2L2,8.63932098305707e-06
+R-HSA-6811438,Intra-Golgi traffic,8.514634527416535e-06
+R-HSA-194068,Bile acid and bile salt metabolism,8.455155197714055e-06
+R-HSA-8956319,Nucleotide catabolism,8.448920295864883e-06
+R-HSA-975634,Retinoid metabolism and transport,8.391469251815327e-06
+R-HSA-420092,Glucagon-type ligand receptors,8.367909124526465e-06
+R-HSA-9840310,Glycosphingolipid catabolism,8.32222487848375e-06
+R-HSA-73893,DNA Damage Bypass,8.30818625399455e-06
+R-HSA-6783783,Interleukin-10 signaling,8.235557784979344e-06
+R-HSA-445095,Interaction between L1 and Ankyrins,8.160200837405413e-06
+R-HSA-1236382,Constitutive Signaling by Ligand-Responsive EGFR Cancer Variants,8.156835930362351e-06
+R-HSA-187577,SCF(Skp2)-mediated degradation of p27/p21,8.14828497081378e-06
+R-HSA-8956321,Nucleotide salvage,8.095793786856171e-06
+R-HSA-201451,Signaling by BMP,8.03724996508579e-06
+R-HSA-982772,Growth hormone receptor signaling,7.968351696542754e-06
+R-HSA-177243,Interactions of Rev with host cellular proteins,7.95720979583558e-06
+R-HSA-9006335,Signaling by Erythropoietin,7.955648338837809e-06
+R-HSA-169911,Regulation of Apoptosis,7.873072891357344e-06
+R-HSA-5685938,HDR through Single Strand Annealing (SSA),7.79148941101062e-06
+R-HSA-9696270,RND2 GTPase cycle,7.741383281011742e-06
+R-HSA-9830674,Formation of the ureteric bud,7.67562009057426e-06
+R-HSA-9701193,Defective homologous recombination repair (HRR) due to PALB2 loss of function,7.632669632298444e-06
+R-HSA-9920588,Dengue virus activates/modulates innate and adaptive immune responses,7.570358386310503e-06
+R-HSA-9665348,Signaling by ERBB2 ECD mutants,7.533062208297311e-06
+R-HSA-5213460,RIPK1-mediated regulated necrosis,7.473694783665849e-06
+R-HSA-70895,Branched-chain amino acid catabolism,7.425535053268986e-06
+R-HSA-9646399,Aggrephagy,7.394298402494249e-06
+R-HSA-5223345,Miscellaneous transport and binding events,7.370526034201613e-06
+R-HSA-9709570,Impaired BRCA2 binding to RAD51,7.309576828874681e-06
+R-HSA-622312,Inflammasomes,7.298801272847835e-06
+R-HSA-168276,NS1 Mediated Effects on Host Pathways,7.2769341786853876e-06
+R-HSA-5626467,RHO GTPases activate IQGAPs,7.221436028062668e-06
+R-HSA-5668599,RHO GTPases Activate NADPH Oxidases,7.1839514222293675e-06
+R-HSA-390471,Association of TriC/CCT with target proteins during biosynthesis,7.172851189327868e-06
+R-HSA-9841251,Mitochondrial unfolded protein response (UPRmt),7.137057859760543e-06
+R-HSA-379724,tRNA Aminoacylation,7.1158908934923614e-06
+R-HSA-8941858,Regulation of RUNX3 expression and activity,7.059480329089574e-06
+R-HSA-9669938,Signaling by KIT in disease,7.004369072644744e-06
+R-HSA-4608870,Asymmetric localization of PCP proteins,6.979189336272149e-06
+R-HSA-6806667,Metabolism of fat-soluble vitamins,6.970186272465684e-06
+R-HSA-9671555,Signaling by PDGFR in disease,6.955832136685269e-06
+R-HSA-9818027,NFE2L2 regulating anti-oxidant/detoxification enzymes,6.930139671824165e-06
+R-HSA-5173214,O-glycosylation of TSR domain-containing proteins,6.906912149389384e-06
+R-HSA-9933387,"RORA,B,C and NR1D1 (REV-ERBA) regulate gene expression",6.874488069795725e-06
+R-HSA-1502540,Signaling by Activin,6.873485488228103e-06
+R-HSA-9013507,NOTCH3 Activation and Transmission of Signal to the Nucleus,6.827319305870342e-06
+R-HSA-354192,Integrin signaling,6.808771400861393e-06
+R-HSA-9696273,RND1 GTPase cycle,6.736844372227205e-06
+R-HSA-5339562,Uptake and actions of bacterial toxins,6.7089344911104405e-06
+R-HSA-9615017,"FOXO-mediated transcription of oxidative stress, metabolic and neuronal genes",6.670371720145251e-06
+R-HSA-75815,Ubiquitin-dependent degradation of Cyclin D,6.656830884437172e-06
+R-HSA-9664424,Cell recruitment (pro-inflammatory response),6.653906728288169e-06
+R-HSA-3371571,HSF1-dependent transactivation,6.626617688631007e-06
+R-HSA-350054,Notch-HLH transcription pathway,6.618635388721431e-06
+R-HSA-111931,PKA-mediated phosphorylation of CREB,6.572596130033604e-06
+R-HSA-9840309,Glycosphingolipid biosynthesis,6.535415793133124e-06
+R-HSA-5654733,Negative regulation of FGFR4 signaling,6.5181942195031215e-06
+R-HSA-392518,Signal amplification,6.500131870660652e-06
+R-HSA-428930,Thromboxane signalling through TP receptor,6.366734870138965e-06
+R-HSA-111471,Apoptotic factor-mediated response,6.363429134484214e-06
+R-HSA-5696397,Gap-filling DNA repair synthesis and ligation in GG-NER,6.331065939185778e-06
+R-HSA-997272,Inhibition  of voltage gated Ca2+ channels via Gbeta/gamma subunits,6.280104433968107e-06
+R-HSA-2173795,Downregulation of SMAD2/3:SMAD4 transcriptional activity,6.235572659068821e-06
+R-HSA-176187,Activation of ATR in response to replication stress,6.2307503869907456e-06
+R-HSA-8874081,MET activates PTK2 signaling,6.178548403236599e-06
+R-HSA-75876,Synthesis of very long-chain fatty acyl-CoAs,6.136507012598454e-06
+R-HSA-9615933,Postmitotic nuclear pore complex (NPC) reformation,6.1243656354334455e-06
+R-HSA-9820960,Respiratory syncytial virus (RSV) attachment and entry,6.108628858085207e-06
+R-HSA-449836,Other interleukin signaling,6.084415232823852e-06
+R-HSA-9029569,NR1H3 & NR1H2 regulate gene expression linked to cholesterol transport and efflux,6.068547030366027e-06
+R-HSA-5358508,Mismatch Repair,6.004506403184264e-06
+R-HSA-392851,Prostacyclin signalling through prostacyclin receptor,5.998988488126716e-06
+R-HSA-176033,Interactions of Vpr with host cellular proteins,5.99059242980272e-06
+R-HSA-168274,Export of Viral Ribonucleoproteins from Nucleus,5.980261660791151e-06
+R-HSA-72165,mRNA Splicing - Minor Pathway,5.913852347013388e-06
+R-HSA-9844594,Transcriptional regulation of brown and beige adipocyte differentiation by EBF2,5.901536963118976e-06
+R-HSA-9703648,Signaling by FLT3 ITD and TKD mutants,5.837884489290396e-06
+R-HSA-9660826,Purinergic signaling in leishmaniasis infection,5.834606460491512e-06
+R-HSA-69205,G1/S-Specific Transcription,5.8273007138832e-06
+R-HSA-456926,Thrombin signalling through proteinase activated receptors (PARs),5.813166841789422e-06
+R-HSA-196807,Nicotinate metabolism,5.7956975936510154e-06
+R-HSA-177504,Retrograde neurotrophin signalling,5.742998128073422e-06
+R-HSA-5654732,Negative regulation of FGFR3 signaling,5.740697303157219e-06
+R-HSA-9013407,RHOH GTPase cycle,5.721780412754243e-06
+R-HSA-5693554,Resolution of D-loop Structures through Synthesis-Dependent Strand Annealing (SDSA),5.7001984007727424e-06
+R-HSA-179409,APC-Cdc20 mediated degradation of Nek2A,5.6918496570722006e-06
+R-HSA-181430,Norepinephrine Neurotransmitter Release Cycle,5.673509405890982e-06
+R-HSA-9927418,Developmental Lineage of Mammary Gland Luminal Epithelial Cells,5.6588425458698905e-06
+R-HSA-5651801,PCNA-Dependent Long Patch Base Excision Repair,5.651279619888213e-06
+R-HSA-9664565,Signaling by ERBB2 KD Mutants,5.519826959184307e-06
+R-HSA-167169,HIV Transcription Elongation,5.501911558175187e-06
+R-HSA-9006115,Signaling by NTRK2 (TRKB),5.499870832966611e-06
+R-HSA-5357786,TNFR1-induced proapoptotic signaling,5.495606368456025e-06
+R-HSA-4090294,SUMOylation of intracellular receptors,5.493337897477734e-06
+R-HSA-1839126,FGFR2 mutant receptor activation,5.472785800985571e-06
+R-HSA-9938206,Developmental Lineage of Mammary Stem Cells,5.471770315846913e-06
+R-HSA-1369062,ABC transporters in lipid homeostasis,5.462602365704756e-06
+R-HSA-399997,Acetylcholine regulates insulin secretion,5.3967307734181514e-06
+R-HSA-416572,Sema4D induced cell migration and growth-cone collapse,5.379564759161501e-06
+R-HSA-5601884,PIWI-interacting RNA (piRNA) biogenesis,5.3552515099188854e-06
+R-HSA-912631,Regulation of signaling by CBL,5.301164188262505e-06
+R-HSA-110313,Translesion synthesis by Y family DNA polymerases bypasses lesions on DNA template,5.275242153287523e-06
+R-HSA-9823730,Formation of definitive endoderm,5.266313912759823e-06
+R-HSA-1296041,Activation of G protein gated Potassium channels,5.2445818063616695e-06
+R-HSA-9013695,NOTCH4 Intracellular Domain Regulates Transcription,5.2354982405420304e-06
+R-HSA-4641258,Degradation of DVL,5.229351810136639e-06
+R-HSA-452723,Transcriptional regulation of pluripotent stem cells,5.225029353141682e-06
+R-HSA-167243,Tat-mediated HIV elongation arrest and recovery,5.224099923202457e-06
+R-HSA-167290,Pausing and recovery of HIV elongation,5.215350228666392e-06
+R-HSA-77289,Mitochondrial Fatty Acid Beta-Oxidation,5.2115957176121785e-06
+R-HSA-9958790,SLC-mediated transport of inorganic anions,5.166965432689801e-06
+R-HSA-1963640,GRB2 events in ERBB2 signaling,5.164033800799625e-06
+R-HSA-5655253,Signaling by FGFR2 in disease,5.104637125253388e-06
+R-HSA-5602498,MyD88 deficiency (TLR2/4),5.063615910121524e-06
+R-HSA-1566948,Elastic fibre formation,5.054835893325762e-06
+R-HSA-190861,Gap junction assembly,5.004597039170971e-06
+R-HSA-165159,MTOR signalling,4.98686350509508e-06
+R-HSA-1236978,Cross-presentation of soluble exogenous antigens (endosomes),4.979319952425656e-06
+R-HSA-432720,Lysosome Vesicle Biogenesis,4.9222345685996825e-06
+R-HSA-6803529,FGFR2 alternative splicing,4.92110700538542e-06
+R-HSA-5603041,IRAK4 deficiency (TLR2/4),4.91902193415046e-06
+R-HSA-9733709,Cardiogenesis,4.894806866506212e-06
+R-HSA-73927,Depurination,4.881625531581359e-06
+R-HSA-425397,"Transport of vitamins, nucleosides, and related molecules",4.82465545638406e-06
+R-HSA-9638630,Attachment of bacteria to epithelial cells,4.764759255885606e-06
+R-HSA-9759475,Regulation of CDH11 Expression and Function,4.747703568417116e-06
+R-HSA-9028731,Activated NTRK2 signals through FRS2 and FRS3,4.673045833182221e-06
+R-HSA-9735869,SARS-CoV-1 modulates host translation machinery,4.6695548132119484e-06
+R-HSA-201556,Signaling by ALK,4.630447458336414e-06
+R-HSA-5654716,Downstream signaling of activated FGFR4,4.572766247985075e-06
+R-HSA-9717207,"Sensory perception of sweet, bitter, and umami (glutamate) taste",4.54898217491777e-06
+R-HSA-389957,Prefoldin mediated transfer of substrate  to CCT/TriC,4.529379796916516e-06
+R-HSA-8948216,Collagen chain trimerization,4.511191219919013e-06
+R-HSA-76071,RNA Polymerase III Transcription Initiation From Type 3 Promoter,4.508056370654681e-06
+R-HSA-180585,Vif-mediated degradation of APOBEC3G,4.5073786886124785e-06
+R-HSA-1592389,Activation of Matrix Metalloproteinases,4.498244403754011e-06
+R-HSA-8949613,Cristae formation,4.489288218342962e-06
+R-HSA-191273,Cholesterol biosynthesis,4.483664859927037e-06
+R-HSA-5654727,Negative regulation of FGFR2 signaling,4.368773948732795e-06
+R-HSA-9927426,Developmental Lineage of Mammary Gland Alveolar Cells,4.366888413173629e-06
+R-HSA-71403,Citric acid cycle (TCA cycle),4.364082729608978e-06
+R-HSA-389357,CD28 dependent PI3K/Akt signaling,4.3610497736185664e-06
+R-HSA-9619665,EGR2 and SOX10-mediated initiation of Schwann cell myelination,4.3567191817697236e-06
+R-HSA-9035034,RHOF GTPase cycle,4.340446921382188e-06
+R-HSA-6804114,TP53 Regulates Transcription of Genes Involved in G2 Cell Cycle Arrest,4.301854082520327e-06
+R-HSA-749476,RNA Polymerase III Abortive And Retractive Initiation,4.275378626371723e-06
+R-HSA-110373,Resolution of AP sites via the multiple-nucleotide patch replacement pathway,4.218421218018986e-06
+R-HSA-451326,Activation of kainate receptors upon glutamate binding,4.194458439031012e-06
+R-HSA-170822,Regulation of Glucokinase by Glucokinase Regulatory Protein,4.166269660202458e-06
+R-HSA-9909505,Modulation of host responses by IFN-stimulated genes,4.151905572623931e-06
+R-HSA-3214842,HDMs demethylate histones,4.127924854890984e-06
+R-HSA-1855204,Synthesis of IP3 and IP4 in the cytosol,4.123801617283246e-06
+R-HSA-163615,PKA activation,4.123204143215539e-06
+R-HSA-9614657,FOXO-mediated transcription of cell death genes,4.088274742424072e-06
+R-HSA-5607761,Dectin-1 mediated noncanonical NF-kB signaling,4.085648309842377e-06
+R-HSA-180910,Vpr-mediated nuclear import of PICs,4.0711411589487916e-06
+R-HSA-1538133,G0 and Early G1,4.070961329941242e-06
+R-HSA-69190,DNA strand elongation,4.051775615744489e-06
+R-HSA-5362768,Hh mutants are degraded by ERAD,4.030748714189117e-06
+R-HSA-9927432,Developmental Lineage of Mammary Gland Myoepithelial Cells,4.003265089377092e-06
+R-HSA-9931953,Biofilm formation,3.987927182330827e-06
+R-HSA-2024101,CS/DS degradation,3.981621229078294e-06
+R-HSA-5637812,Signaling by EGFRvIII in Cancer,3.971025992149902e-06
+R-HSA-9856532,Mechanical load activates signaling by PIEZO1 and integrins in osteocytes,3.92664701521859e-06
+R-HSA-399721,"Glutamate binding, activation of AMPA receptors and synaptic plasticity",3.903237296794115e-06
+R-HSA-5673000,RAF activation,3.894697036840868e-06
+R-HSA-1250196,SHC1 events in ERBB2 signaling,3.892809346760871e-06
+R-HSA-389513,Co-inhibition by CTLA4,3.8826820314559475e-06
+R-HSA-5610783,Degradation of GLI2 by the proteasome,3.873546463746216e-06
+R-HSA-3301854,Nuclear Pore Complex (NPC) Disassembly,3.850309240638218e-06
+R-HSA-4791275,Signaling by WNT in cancer,3.836784587026147e-06
+R-HSA-9834899,Specification of the neural plate border,3.8292476952868846e-06
+R-HSA-5637815,Signaling by Ligand-Responsive EGFR Variants in Cancer,3.820012803727609e-06
+R-HSA-9861718,Regulation of pyruvate metabolism,3.7130066289907187e-06
+R-HSA-389977,Post-chaperonin tubulin folding pathway,3.6817658527860947e-06
+R-HSA-1482788,Acyl chain remodelling of PC,3.681647971382665e-06
+R-HSA-9027276,Erythropoietin activates Phosphoinositide-3-kinase (PI3K),3.6705422324582547e-06
+R-HSA-1266695,Interleukin-7 signaling,3.6694459806704604e-06
+R-HSA-170670,Adenylate cyclase inhibitory pathway,3.634639384206351e-06
+R-HSA-1296059,G protein gated Potassium channels,3.6336332108923833e-06
+R-HSA-888590,"GABA synthesis, release, reuptake and degradation",3.4900430125014255e-06
+R-HSA-193639,p75NTR signals via NF-kB,3.482805104594179e-06
+R-HSA-8963899,Plasma lipoprotein remodeling,3.469602339604504e-06
+R-HSA-192105,Synthesis of bile acids and bile salts,3.3815967534493327e-06
+R-HSA-9013418,RHOBTB2 GTPase cycle,3.380727021575828e-06
+R-HSA-5654708,Downstream signaling of activated FGFR3,3.3746024937734998e-06
+R-HSA-9704331,Defective HDR through Homologous Recombination Repair (HRR) due to PALB2 loss of BRCA1 binding function,3.3304185900160494e-06
+R-HSA-9634638,Estrogen-dependent nuclear events downstream of ESR-membrane signaling,3.3160934840677834e-06
+R-HSA-9725371,Nuclear events stimulated by ALK signaling in cancer,3.2946026577803786e-06
+R-HSA-9013508,NOTCH3 Intracellular Domain Regulates Transcription,3.2384228312652506e-06
+R-HSA-171306,Packaging Of Telomere Ends,3.21200695695391e-06
+R-HSA-182971,EGFR downregulation,3.2074848910120365e-06
+R-HSA-9687139,Aberrant regulation of mitotic cell cycle due to RB1 defects,3.1898550965242544e-06
+R-HSA-6783589,Interleukin-6 family signaling,3.1730461948415798e-06
+R-HSA-70221,Glycogen breakdown (glycogenolysis),3.171215363303143e-06
+R-HSA-3928664,Ephrin signaling,3.169684653138157e-06
+R-HSA-4641257,Degradation of AXIN,3.1696593691875735e-06
+R-HSA-3238698,WNT ligand biogenesis and trafficking,3.1650201048248503e-06
+R-HSA-5654696,Downstream signaling of activated FGFR2,3.147204873072221e-06
+R-HSA-5676594,TNF receptor superfamily (TNFSF) members mediating non-canonical NF-kB pathway,3.145939173833885e-06
+R-HSA-5621575,CD209 (DC-SIGN) signaling,3.117845224151875e-06
+R-HSA-399719,Trafficking of AMPA receptors,3.1084055025025006e-06
+R-HSA-5620924,Intraflagellar transport,3.097350348224176e-06
+R-HSA-2424491,DAP12 signaling,3.0731280451392855e-06
+R-HSA-164952,The role of Nef in HIV-1 replication and disease pathogenesis,3.072514071672012e-06
+R-HSA-5620922,BBSome-mediated cargo-targeting to cilium,3.0647586077305076e-06
+R-HSA-400451,Free fatty acids regulate insulin secretion,3.0197598483010354e-06
+R-HSA-390918,Peroxisomal lipid metabolism,3.0194219948155367e-06
+R-HSA-399956,CRMPs in Sema3A signaling,2.997217162271994e-06
+R-HSA-3560783,"Defective B4GALT7 causes EDS, progeroid type",2.9961558995865614e-06
+R-HSA-9709603,Impaired BRCA2 binding to PALB2,2.966046737462573e-06
+R-HSA-6803204,TP53 Regulates Transcription of Genes Involved in Cytochrome C Release,2.9050894857322255e-06
+R-HSA-5654726,Negative regulation of FGFR1 signaling,2.9005192744901206e-06
+R-HSA-3560782,Diseases associated with glycosaminoglycan metabolism,2.897133465215036e-06
+R-HSA-416700,Other semaphorin interactions,2.8838856751998268e-06
+R-HSA-3000170,Syndecan interactions,2.861535225854318e-06
+R-HSA-9603798,Class I peroxisomal membrane protein import,2.8587257960669036e-06
+R-HSA-3371568,Attenuation phase,2.8541833404334126e-06
+R-HSA-5083635,Defective B3GALTL causes PpS,2.851275872047122e-06
+R-HSA-8863678,Neurodegenerative Diseases,2.8401504895175e-06
+R-HSA-375280,Amine ligand-binding receptors,2.8273283462299645e-06
+R-HSA-1483191,Synthesis of PC,2.8174592990153973e-06
+R-HSA-112409,RAF-independent MAPK1/3 activation,2.8151013610340652e-06
+R-HSA-167152,Formation of HIV elongation complex in the absence of HIV Tat,2.8095991249737185e-06
+R-HSA-168333,NEP/NS2 Interacts with the Cellular Export Machinery,2.7972722122651386e-06
+R-HSA-881907,Gastrin-CREB signalling pathway via PKC and MAPK,2.796810087658368e-06
+R-HSA-5654700,FRS-mediated FGFR2 signaling,2.7816893962893635e-06
+R-HSA-9931510,Phosphorylated BMAL1:CLOCK (ARNTL:CLOCK) activates expression of core clock genes,2.7683608318820187e-06
+R-HSA-167238,Pausing and recovery of Tat-mediated HIV elongation,2.7451966432681306e-06
+R-HSA-6782315,tRNA modification in the nucleus and cytosol,2.7286785296938e-06
+R-HSA-174113,SCF-beta-TrCP mediated degradation of Emi1,2.695733998058229e-06
+R-HSA-1963642,PI3K events in ERBB2 signaling,2.66270324176728e-06
+R-HSA-8876384,Listeria monocytogenes entry into host cells,2.6624586374357524e-06
+R-HSA-5620971,Pyroptosis,2.6438864040746097e-06
+R-HSA-9839394,TGFBR3 expression,2.6428998368259215e-06
+R-HSA-180746,Nuclear import of Rev protein,2.633381105708253e-06
+R-HSA-4641265,Repression of WNT target genes,2.6325041232061043e-06
+R-HSA-3928663,EPHA-mediated growth cone collapse,2.6312197147267395e-06
+R-HSA-9694614,Attachment and Entry,2.6111758168041125e-06
+R-HSA-9620244,Long-term potentiation,2.6058144405653127e-06
+R-HSA-162588,Budding and maturation of HIV virion,2.5893519217527545e-06
+R-HSA-445144,Signal transduction by L1,2.5584079793501827e-06
+R-HSA-1362277,Transcription of E2F targets under negative control by DREAM complex,2.552438662846129e-06
+R-HSA-159234,Transport of Mature mRNAs Derived from Intronless Transcripts,2.550875528692086e-06
+R-HSA-1638091,Heparan sulfate/heparin (HS-GAG) metabolism,2.538851882605192e-06
+R-HSA-912526,Interleukin receptor SHC signaling,2.5173961206593022e-06
+R-HSA-190872,Transport of connexons to the plasma membrane,2.501848313158457e-06
+R-HSA-8854691,Interleukin-20 family signaling,2.489031534588719e-06
+R-HSA-380108,Chemokine receptors bind chemokines,2.4815609007091984e-06
+R-HSA-9704646,Defective HDR through Homologous Recombination Repair (HRR) due to PALB2 loss of BRCA2/RAD51/RAD51C binding function,2.479250174937856e-06
+R-HSA-168271,Transport of Ribonucleoproteins into the Host Nucleus,2.4729977287779486e-06
+R-HSA-5686938,Regulation of TLR by endogenous ligand,2.4497354992419255e-06
+R-HSA-167287,HIV elongation arrest and recovery,2.4483701605362183e-06
+R-HSA-9665686,Signaling by ERBB2 TMD/JMD mutants,2.435270673970422e-06
+R-HSA-212676,Dopamine Neurotransmitter Release Cycle,2.4011240154171766e-06
+R-HSA-5683826,Surfactant metabolism,2.3709977012458016e-06
+R-HSA-76066,RNA Polymerase III Transcription Initiation From Type 2 Promoter,2.364844776319057e-06
+R-HSA-8863795,Downregulation of ERBB2 signaling,2.356284032754681e-06
+R-HSA-2032785,YAP1- and WWTR1 (TAZ)-stimulated gene expression,2.3205036749572515e-06
+R-HSA-9661069,"Defective binding of RB1 mutants to E2F1,(E2F2, E2F3)",2.31072450961412e-06
+R-HSA-74158,RNA Polymerase III Transcription,2.2654472016702347e-06
+R-HSA-5260271,Diseases of Immune System,2.2580719509028674e-06
+R-HSA-5627123,RHO GTPases activate PAKs,2.2446650845962784e-06
+R-HSA-9701192,Defective homologous recombination repair (HRR) due to BRCA1 loss of function,2.2345290112078833e-06
+R-HSA-9825892,Regulation of MITF-M-dependent genes involved in cell cycle and proliferation,2.2322652501555345e-06
+R-HSA-1227990,Signaling by ERBB2 in Cancer,2.2285380067447367e-06
+R-HSA-163359,Glucagon signaling in metabolic regulation,2.204258918479062e-06
+R-HSA-901042,Calnexin/calreticulin cycle,2.175896169864499e-06
+R-HSA-202430,Translocation of ZAP-70 to Immunological synapse,2.173151763521313e-06
+R-HSA-3000480,Scavenging by Class A Receptors,2.1507139404026182e-06
+R-HSA-5693537,Resolution of D-Loop Structures,2.1250559271161423e-06
+R-HSA-187687,Signalling to ERKs,2.1103701794944166e-06
+R-HSA-450408,AUF1 (hnRNP D0) binds and destabilizes mRNA,2.1061464143244124e-06
+R-HSA-9932444,ATP-dependent chromatin remodelers,2.093236767664697e-06
+R-HSA-5656169,Termination of translesion DNA synthesis,2.0742439491548605e-06
+R-HSA-8849932,Synaptic adhesion-like molecules,2.0713579594821255e-06
+R-HSA-174417,Telomere C-strand (Lagging Strand) Synthesis,2.071171121321336e-06
+R-HSA-5675482,Regulation of necroptotic cell death,2.066816856366106e-06
+R-HSA-1912420,Pre-NOTCH Processing in Golgi,2.0582715573782687e-06
+R-HSA-418885,DCC mediated attractive signaling,2.044975870530219e-06
+R-HSA-159227,Transport of the SLBP independent Mature mRNA,2.0070722693988508e-06
+R-HSA-5625886,Activated PKN1 stimulates transcription of AR (androgen receptor) regulated genes KLK2 and KLK3,1.9812213372896755e-06
+R-HSA-5387390,Hh mutants abrogate ligand secretion,1.959982510480343e-06
+R-HSA-5625900,RHO GTPases activate CIT,1.948183234984075e-06
+R-HSA-9830364,Formation of the nephric duct,1.9479029616129114e-06
+R-HSA-2243919,Crosslinking of collagen fibrils,1.93633503500845e-06
+R-HSA-69273,Cyclin A/B1/B2 associated events during G2/M transition,1.930941101334843e-06
+R-HSA-2022870,CS-GAG biosynthesis,1.9085280779786916e-06
+R-HSA-6804758,Regulation of TP53 Activity through Acetylation,1.865142516623757e-06
+R-HSA-210991,Basigin interactions,1.8606989671605907e-06
+R-HSA-9609736,Assembly and cell surface presentation of NMDA receptors,1.8540512396478241e-06
+R-HSA-5693568,Resolution of D-loop Structures through Holliday Junction Intermediates,1.851234428855628e-06
+R-HSA-8978934,Metabolism of cofactors,1.8511981083743992e-06
+R-HSA-186712,Regulation of beta-cell development,1.8461327773591066e-06
+R-HSA-8979227,Triglyceride metabolism,1.8416891823826954e-06
+R-HSA-917977,Transferrin endocytosis and recycling,1.81777558430496e-06
+R-HSA-8941856,RUNX3 regulates NOTCH signaling,1.8000059243620526e-06
+R-HSA-373753,Nephrin family interactions,1.7803143370877926e-06
+R-HSA-9034015,Signaling by NTRK3 (TRKC),1.7762957184654624e-06
+R-HSA-6783310,Fanconi Anemia Pathway,1.7742035796272985e-06
+R-HSA-9929356,GSK3B-mediated proteasomal degradation of PD-L1(CD274),1.741377638830917e-06
+R-HSA-430039,mRNA decay by 5' to 3' exoribonuclease,1.7155655519503542e-06
+R-HSA-1482839,Acyl chain remodelling of PE,1.7141109102194334e-06
+R-HSA-140877,Formation of Fibrin Clot (Clotting Cascade),1.702297454526034e-06
+R-HSA-9865881,Complex III assembly,1.7006820756175556e-06
+R-HSA-159231,Transport of Mature mRNA Derived from an Intronless Transcript,1.697786370248709e-06
+R-HSA-169893,Prolonged ERK activation events,1.6966534269592549e-06
+R-HSA-5655332,Signaling by FGFR3 in disease,1.617147937295611e-06
+R-HSA-499943,Interconversion of nucleotide di- and triphosphates,1.6154094644623274e-06
+R-HSA-2022377,Metabolism of Angiotensinogen to Angiotensins,1.6150694973648366e-06
+R-HSA-2514856,The phototransduction cascade,1.5781205658230182e-06
+R-HSA-110331,Cleavage of the damaged purine,1.5649573338410302e-06
+R-HSA-418217,G beta:gamma signalling through PLC beta,1.5331182485930468e-06
+R-HSA-9659787,Aberrant regulation of mitotic G1/S transition in cancer due to RB1 defects,1.5242890525551986e-06
+R-HSA-438066,"Unblocking of NMDA receptors, glutamate binding and activation",1.5036545302336603e-06
+R-HSA-5663084,Diseases of carbohydrate metabolism,1.4818348501431373e-06
+R-HSA-9027284,Erythropoietin activates RAS,1.4392201747195653e-06
+R-HSA-211976,Endogenous sterols,1.4253541630280093e-06
+R-HSA-9955298,SLC-mediated transport of organic anions,1.4198014621698614e-06
+R-HSA-9674555,Signaling by CSF3 (G-CSF),1.4171694324852273e-06
+R-HSA-1482801,Acyl chain remodelling of PS,1.4082984725498664e-06
+R-HSA-180024,DARPP-32 events,1.3778351493696345e-06
+R-HSA-349425,Autodegradation of the E3 ubiquitin ligase COP1,1.3756632769585544e-06
+R-HSA-9617828,FOXO-mediated transcription of cell cycle genes,1.3644289346709045e-06
+R-HSA-500657,Presynaptic function of Kainate receptors,1.3627679581628384e-06
+R-HSA-5637810,Constitutive Signaling by EGFRvIII,1.3586766423312714e-06
+R-HSA-9705462,Inactivation of CSF3 (G-CSF) signaling,1.3361304132879301e-06
+R-HSA-9031628,NGF-stimulated transcription,1.3037126951662413e-06
+R-HSA-210500,Glutamate Neurotransmitter Release Cycle,1.2809819780106433e-06
+R-HSA-9734009,Defective Intrinsic Pathway for Apoptosis,1.2524316784745566e-06
+R-HSA-2129379,Molecules associated with elastic fibres,1.2331561650998212e-06
+R-HSA-9918485,Dengue Virus Attachment and Entry,1.2329092081142783e-06
+R-HSA-2022928,HS-GAG biosynthesis,1.2241432209478986e-06
+R-HSA-164938,Nef-mediates down modulation of cell surface receptors by recruiting them to clathrin adapters,1.2177131278200732e-06
+R-HSA-9772755,Formation of WDR5-containing histone-modifying complexes,1.208040964560945e-06
+R-HSA-168638,NOD1/2 Signaling Pathway,1.1809313159644717e-06
+R-HSA-167200,Formation of HIV-1 elongation complex containing HIV-1 Tat,1.1794152710496381e-06
+R-HSA-167246,Tat-mediated elongation of the HIV-1 transcript,1.1779162787508557e-06
+R-HSA-9764260,Regulation of Expression and Function of Type II Classical Cadherins,1.173100059618543e-06
+R-HSA-9680350,Signaling by CSF1 (M-CSF) in myeloid cells,1.1663290486212212e-06
+R-HSA-397795,G-protein beta:gamma signalling,1.1335924376621803e-06
+R-HSA-352230,Amino acid transport across the plasma membrane,1.1141889456592126e-06
+R-HSA-389960,Formation of tubulin folding intermediates by CCT/TriC,1.1126793452939586e-06
+R-HSA-4641263,Regulation of FZD by ubiquitination,1.1087440366946358e-06
+R-HSA-8982491,Glycogen metabolism,1.0898508809154406e-06
+R-HSA-418360,Platelet calcium homeostasis,1.080601264123641e-06
+R-HSA-9821993,Replacement of protamines by nucleosomes in the male pronucleus,1.0781566816349444e-06
+R-HSA-9768919,NPAS4 regulates expression of target genes,1.0616924314108037e-06
+R-HSA-9753281,Paracetamol ADME,1.0530039382747949e-06
+R-HSA-202040,G-protein activation,1.051146684861381e-06
+R-HSA-2559585,Oncogene Induced Senescence,1.0422007059478782e-06
+R-HSA-1643713,Signaling by EGFR in Cancer,1.0406130083011183e-06
+R-HSA-9843743,Transcriptional regulation of brown and beige adipocyte differentiation,1.030485456379064e-06
+R-HSA-5621480,Dectin-2 family,1.0250001768560921e-06
+R-HSA-199220,Vitamin B5 (pantothenate) metabolism,1.0248664839625898e-06
+R-HSA-196071,Metabolism of steroid hormones,1.020035820692333e-06
+R-HSA-975576,N-glycan antennae elongation in the medial/trans-Golgi,1.018260632087828e-06
+R-HSA-400685,Sema4D in semaphorin signaling,9.97733080217676e-07
+R-HSA-5654687,Downstream signaling of activated FGFR1,9.556172761538254e-07
+R-HSA-163560,Triglyceride catabolism,9.380463297532265e-07
+R-HSA-2979096,NOTCH2 Activation and Transmission of Signal to the Nucleus,9.339444559374356e-07
+R-HSA-1606322,ZBP1(DAI) mediated induction of type I IFNs,9.095051900164256e-07
+R-HSA-5218921,VEGFR2 mediated cell proliferation,9.093424105962755e-07
+R-HSA-429947,Deadenylation of mRNA,9.033732602961673e-07
+R-HSA-3371511,HSF1 activation,9.004946744661711e-07
+R-HSA-77387,Insulin receptor recycling,8.861879198012355e-07
+R-HSA-8955332,Carboxyterminal post-translational modifications of tubulin,8.690637371380025e-07
+R-HSA-113510,E2F mediated regulation of DNA replication,8.316267289032112e-07
+R-HSA-156590,Glutathione conjugation,8.291509164693512e-07
+R-HSA-1839124,FGFR1 mutant receptor activation,8.178127399492915e-07
+R-HSA-8940973,RUNX2 regulates osteoblast differentiation,8.050921519905928e-07
+R-HSA-532668,N-glycan trimming in the ER and Calnexin/Calreticulin cycle,7.926268201960342e-07
+R-HSA-9013424,RHOV GTPase cycle,7.742405955073898e-07
+R-HSA-5357956,TNFR1-induced NF-kappa-B signaling pathway,7.520147088397157e-07
+R-HSA-420029,Tight junction interactions,7.48157953822119e-07
+R-HSA-180534,Vpu mediated degradation of CD4,7.458900330400857e-07
+R-HSA-392451,G beta:gamma signalling through PI3Kgamma,7.381212991874381e-07
+R-HSA-9609523,Insertion of tail-anchored proteins into the endoplasmic reticulum membrane,7.297081196877848e-07
+R-HSA-2173791,TGF-beta receptor signaling in EMT (epithelial to mesenchymal transition),7.154030555837907e-07
+R-HSA-5627117,RHO GTPases Activate ROCKs,7.144072116465519e-07
+R-HSA-5619107,Defective TPR may confer susceptibility towards thyroid papillary carcinoma (TPC),7.088223273951262e-07
+R-HSA-76061,RNA Polymerase III Transcription Initiation From Type 1 Promoter,6.966438539263844e-07
+R-HSA-399955,SEMA3A-Plexin repulsion signaling by inhibiting Integrin adhesion,6.547392590209599e-07
+R-HSA-9682385,FLT3 signaling in disease,6.459871124580323e-07
+R-HSA-210993,Tie2 Signaling,6.451625276417033e-07
+R-HSA-202427,Phosphorylation of CD3 and TCR zeta chains,6.245727851499311e-07
+R-HSA-391160,Signal regulatory protein family interactions,6.192046913431164e-07
+R-HSA-9833109,Evasion by RSV of host interferon responses,6.181818873030232e-07
+R-HSA-5357769,Caspase activation via extrinsic apoptotic signalling pathway,6.051186509966371e-07
+R-HSA-4085377,SUMOylation of SUMOylation proteins,6.043766526433109e-07
+R-HSA-9748787,Azathioprine ADME,6.037453287691547e-07
+R-HSA-9696264,RND3 GTPase cycle,6.007497810770514e-07
+R-HSA-5602358,Diseases associated with the TLR signaling cascade,5.938147547227676e-07
+R-HSA-8866652,Synthesis of active ubiquitin: roles of E1 and E2 enzymes,5.888203660488852e-07
+R-HSA-5579029,Metabolic disorders of biological oxidation enzymes,5.753433142563671e-07
+R-HSA-198753,ERK/MAPK targets,5.707130203565157e-07
+R-HSA-1181150,Signaling by NODAL,5.186450072048421e-07
+R-HSA-351202,Metabolism of polyamines,5.14649090136693e-07
+R-HSA-4420332,Defective B3GALT6 causes EDSP2 and SEMDJL1,5.139216053129278e-07
+R-HSA-8862803,Deregulated CDK5 triggers multiple neurodegenerative pathways in Alzheimer's disease models,5.073794074553615e-07
+R-HSA-9772572,Early SARS-CoV-2 Infection Events,5.041713030199093e-07
+R-HSA-264876,Insulin processing,4.939774139731678e-07
+R-HSA-8983432,Interleukin-15 signaling,4.925125934647837e-07
+R-HSA-9934037,Formation of neuronal progenitor and neuronal BAF (npBAF and nBAF),4.923230031094666e-07
+R-HSA-418457,cGMP effects,4.902959188785695e-07
+R-HSA-3299685,Detoxification of Reactive Oxygen Species,4.794201138307591e-07
+R-HSA-9024446,NR1H2 and NR1H3-mediated signaling,4.242062195101918e-07
+R-HSA-1433559,Regulation of KIT signaling,4.014375917308414e-07
+R-HSA-392154,Nitric oxide stimulates guanylate cyclase,3.6891216129786045e-07
+R-HSA-9668328,Sealing of the nuclear envelope (NE) by ESCRT-III,3.6314431209224817e-07
+R-HSA-9932451,SWI/SNF chromatin remodelers,3.3159137222031064e-07
+R-HSA-2142691,Synthesis of Leukotrienes (LT) and Eoxins (EX),3.307437516086346e-07
+R-HSA-2022854,Keratan sulfate biosynthesis,3.018915140591131e-07
+R-HSA-9670439,"Signaling by phosphorylated juxtamembrane, extracellular and kinase domain KIT mutants",2.988254959407152e-07
+R-HSA-1222556,ROS and RNS production in phagocytes,2.7823026543763247e-07
+R-HSA-1296072,Voltage gated Potassium channels,2.756309156189228e-07
+R-HSA-9703465,Signaling by FLT3 fusion proteins,2.753121577276393e-07
+R-HSA-9931509,"Expression of BMAL (ARNTL), CLOCK, and NPAS2",2.745314054161919e-07
+R-HSA-2122948,Activated NOTCH1 Transmits Signal to the Nucleus,2.348879788286322e-07
+R-HSA-5674400,Constitutive Signaling by AKT1 E17K in Cancer,2.1944546768270055e-07
+R-HSA-1614635,Sulfur amino acid metabolism,2.1134380316914466e-07
+R-HSA-2514859,"Inactivation, recovery and regulation of the phototransduction cascade",1.5979465498350467e-07
+R-HSA-76009,Platelet Aggregation (Plug Formation),1.5796417248154894e-07
+R-HSA-5689901,Metalloprotease DUBs,1.4354380413476914e-07
+R-HSA-174411,Polymerase switching on the C-strand of the telomere,1.4025491067790598e-07
+R-HSA-9613829,Chaperone Mediated Autophagy,1.2117973653082276e-07
+R-HSA-418592,ADP signalling through P2Y purinoceptor 1,1.2114064837815165e-07
+R-HSA-5694530,Cargo concentration in the ER,1.2101893434177004e-07
+R-HSA-877312,Regulation of IFNG signaling,1.1421427181213474e-07
+R-HSA-9932298,Degradation of CRY and PER proteins,7.18228128169585e-08
+R-HSA-1368108,"BMAL1:CLOCK,NPAS2 activates circadian expression",6.532008025494788e-08
+R-HSA-380972,Energy dependent regulation of mTOR by LKB1-AMPK,5.649729861839184e-08
+R-HSA-2173788,Downregulation of TGF-beta receptor signaling,3.2235734260550874e-08
+R-HSA-167044,Signalling to RAS,2.4642661181917318e-08
+R-HSA-9749641,Aspirin ADME,3.781912750243873e-09
