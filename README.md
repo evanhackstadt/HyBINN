@@ -30,3 +30,7 @@ The model can be run using any combination of these branches, enabling an ablati
   * `processing/`: mapped/unmapped gene split, pathway mask
   * `training/`: cox loss and main training/testing functions
   * `utils/`: cindex bootstrapping, stratified splitting, logging, loading
+
+## Known Issues
+
+Pathway filtering by gene size (≥15 and ≤300 genes) failed to filter an edge case of duplicate pathways. As a result, 51 of the 491 pathway nodes contain 8–14 genes. If fixed, all models should be rerun.

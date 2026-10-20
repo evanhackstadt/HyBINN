@@ -16,6 +16,8 @@ from sklearn.decomposition import PCA
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 
+from utils.splitting import stratified_train_test_split
+
 
 def load_config(config_path: str) -> dict:
     with open(config_path, "r") as f:
@@ -84,11 +86,13 @@ def evaluate_model(cph, test_df, duration_col, event_col):
     return cindex, risk_scores
 
 
-def save_results(results: dict, output_dir: str):
+def save_results(results: dict, output_dir: str, ids_df: pd.DataFrame = None):
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
     with open(output_path / "baseline_coxph_results.json", "w") as f:
         json.dump(results, f, indent=2)
+    if ids_df is not None:
+        ids_df.to_csv(output_path / "traintest_patient_ids.csv")
 
 
 def save_summary(cph, model_name: str, output_dir: str):
@@ -150,6 +154,11 @@ def main():
         stratify=events,
         random_state=args.random_seed,
     )
+    
+    # Store indeces for reproducibility
+    ids_df = pd.DataFrame(columns=['Partition', 'IDs'])
+    ids_df.loc[len(ids_df)] = ['Training', train_index.values]
+    ids_df.loc[len(ids_df)] = ['Testing', test_index.values]
 
     train_index = pd.Index(train_index)
     test_index = pd.Index(test_index)
@@ -186,7 +195,7 @@ def main():
         test_df = assemble_dataframe(X_test_combined, times_test, events_test)
         model_results.append(train_and_save_model("combined", train_df, test_df, output_dir))
 
-    save_results({"models": model_results}, output_dir)
+    save_results({"models": model_results}, output_dir, ids_df=ids_df)
 
     print("CoxPH baseline completed")
     print(f"  gene data: {gene_path}")
