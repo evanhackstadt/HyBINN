@@ -1,5 +1,12 @@
-# DATA
-data/
+# DATA except pathway_names
+data/gene_tables
+data/raw
+data/reactome
+data/processed/clinical_distributions/
+data/processed/gene_data.csv
+data/processed/gene_table.csv
+data/processed/gene_names_types.csv
+data/processed/clinical_data.csv
 
 # LARGE RESULTS FILES
 *.pt
