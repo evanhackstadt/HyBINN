@@ -427,8 +427,8 @@ def make_contrast_forest(contrast_df, out_dir):
     y = np.arange(len(df))
 
     fig, ax = plt.subplots(figsize=(7.5, 0.9 * len(df) + 1.4))
-    ax.hlines(y, df["ci_nb_lo"], df["ci_nb_hi"], color="lightgray", linewidth=7,
-              label="95% CI, variance-corrected (Nadeau–Bengio)")
+    # ax.hlines(y, df["ci_nb_lo"], df["ci_nb_hi"], color="lightgray", linewidth=7,
+    #           label="95% CI, variance-corrected (Nadeau–Bengio)")
     ax.hlines(y, df["ci_boot_lo"], df["ci_boot_hi"], color="steelblue", linewidth=3,
               label="95% bootstrap CI over seeds")
     ax.plot(df["mean_diff"], y, "ko", zorder=3, label="Mean paired difference")
